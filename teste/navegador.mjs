@@ -43,11 +43,11 @@ let estado;
 for (;;) {
   await new Promise((r) => setTimeout(r, 1000));
   estado = await pag.evaluate(() => window.separadorTeste.estado());
-  if (!estado.ocupado && (estado.texto === "Pronto" || estado.texto === "Não deu certo")) break;
+  if (estado.fase === "resultado" || estado.fase === "erro") break;
   if (Date.now() - t0 > 30 * 60 * 1000) { estado.texto = "tempo esgotado"; break; }
 }
 console.log(`estado: ${estado.texto} | ${estado.resumo}${estado.avisos ? " | avisos: " + estado.avisos.trim() : ""} | ${((Date.now() - t0) / 1000).toFixed(1)} s no total (com download/carga do modelo)`);
-if (estado.texto !== "Pronto") { console.log(logs.slice(-30).join("\n")); await nav.close(); process.exit(1); }
+if (estado.fase !== "resultado") { console.log(logs.slice(-30).join("\n")); await nav.close(); process.exit(1); }
 
 const emCache = await pag.evaluate(async () => (await (await caches.open("separador-stems-modelo")).keys()).length);
 console.log(`pedacos do modelo no Cache API: ${emCache}`);

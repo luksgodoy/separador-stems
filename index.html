@@ -13,7 +13,7 @@
 
      COMO OS ESTADOS FUNCIONAM (o JS alterna, o CSS só esconde):
        - Cada estado é uma seção do HTML. Esconder = atributo `hidden` ou classe `.oculto`
-         (as duas têm o mesmo efeito, abaixo). O app.js legado usa `.oculto`; o código novo usa `hidden`.
+         (as duas têm o mesmo efeito, abaixo). O app.js usa as duas.
        - #tela-selecao   estados "inicial" e "arquivo": hero + #zona + opções + botões.
                          Dentro de #zona: #zona-inicial (ícone upload) OU #zona-arquivo (cartão do arquivo).
        - #painel-status  estado "processando".
@@ -322,7 +322,7 @@
       </div>
     </section>
 
-    <!-- estado "processando" (o app.js legado tira .oculto ao chamar status()) -->
+    <!-- estado "processando" -->
     <section id="painel-status" class="vidro oculto" aria-live="polite">
       <div id="anel" class="anel" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div class="anel-giro"></div>
@@ -446,8 +446,6 @@
         </div>
       </div>
 
-      <!-- legado: o app.js atual (mostrar) escreve aqui os <audio> e links; o P2 remove -->
-      <div id="stems" hidden></div>
     </section>
 
     <details id="como">
