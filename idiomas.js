@@ -16,7 +16,7 @@ export const TXT = {
     titulo: "Separador de Stems", sub1: "Voz, bateria, baixo e outros instrumentos, separados", sub2: "no seu navegador", sub3: ". O áudio não sai do seu computador: não há servidor nem upload.",
     sub3b: "O áudio não sai do seu computador: não há servidor nem upload.",
     arraste: "Arraste um arquivo de áudio aqui", ouClique: "ou clique para escolher (WAV, MP3, FLAC, OGG, M4A — o que o navegador souber abrir)",
-    formato: "Formato do WAV", proc: "Processamento", sobre: "Sobreposição", separar: "Separar", cancelar: "Cancelar", b24: "24 bits", auto: "Automático (WebGPU, senão CPU)", ov: "0,25 (padrão)",
+    formato: "Formato do WAV", sobre: "Tipo", separar: "Separar", cancelar: "Cancelar", b24: "24 bits", tipoRapido: "Rápido", tipoPadrao: "Padrão", tipoAlto: "Alto",
     lendo: "Lendo o áudio", separando: "Separando", janela: "Janela 14 de 23 · ~0:41 restantes", pronto: "Pronto", erro: "Não deu certo",
     erroDet: "não consegui abrir este arquivo de áudio (EncodingError: Unable to decode audio data)",
     baixar: "Baixar WAV 24 bits", baixarTodos: "Baixar todos", resumo: "Separado em 1:12 (WEBGPU) · 3:42 de áudio · 19 s por minuto de áudio",
@@ -32,7 +32,7 @@ export const TXT = {
     titulo: "Stem Separator", sub1: "Vocals, drums, bass and other instruments, separated", sub2: "in your browser", sub3: ". Your audio never leaves your computer: no server, no upload.",
     sub3b: "Your audio never leaves your computer: no server, no upload.",
     arraste: "Drop an audio file here", ouClique: "or click to choose (WAV, MP3, FLAC, OGG, M4A — anything your browser can open)",
-    formato: "WAV format", proc: "Processing", sobre: "Overlap", separar: "Separate", cancelar: "Cancel", b24: "24 bit", auto: "Automatic (WebGPU, else CPU)", ov: "0.25 (default)",
+    formato: "WAV format", sobre: "Type", separar: "Separate", cancelar: "Cancel", b24: "24 bit", tipoRapido: "Fast", tipoPadrao: "Standard", tipoAlto: "High",
     lendo: "Reading audio", separando: "Separating", janela: "Window 14 of 23 · ~0:41 left", pronto: "Done", erro: "Something went wrong",
     erroDet: "couldn't open this audio file (EncodingError: Unable to decode audio data)",
     baixar: "Download 24-bit WAV", baixarTodos: "Download all", resumo: "Separated in 1:12 (WEBGPU) · 3:42 of audio · 19 s per minute of audio",
@@ -49,14 +49,14 @@ export const TXT = {
 // Acrescentado por nos (nao existe no prototipo).
 export const EXTRA = {
   pt: {
-    b16: "16 bits", webgpu: "WebGPU", cpu: "CPU", ov10: "0,10", ov50: "0,50",
+    b16: "16 bits",
     tocar: "Tocar", pausar: "Pausar", fechar: "Fechar", volume: "Volume",
     zonaAria: "Escolher arquivo de áudio", idiomaAria: "Idioma", wav: "WAV",
     comoHtml: 'O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a> (Demucs v4, Meta/FAIR, licença MIT) roda aqui mesmo, com o <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Na primeira vez são baixados ~90 MB de modelo, guardados no cache do navegador para as próximas. A saída é sempre 44,1 kHz estéreo.',
     titulo_pagina: "Separador de Stems",
   },
   en: {
-    b16: "16 bit", webgpu: "WebGPU", cpu: "CPU", ov10: "0.10", ov50: "0.50",
+    b16: "16 bit",
     tocar: "Play", pausar: "Pause", fechar: "Close", volume: "Volume",
     zonaAria: "Choose an audio file", idiomaAria: "Language", wav: "WAV",
     comoHtml: 'The <a href="https://github.com/facebookresearch/demucs">htdemucs</a> model (Demucs v4, Meta/FAIR, MIT license) runs right here with <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. The first visit downloads ~90 MB of model, cached by the browser for next time. Output is always 44.1 kHz stereo.',

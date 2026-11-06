@@ -189,6 +189,10 @@
   .stem-icone { width: 32px; height: 32px; border-radius: 10px; background: color-mix(in oklch, var(--ac) 18%, transparent);
                 display: inline-flex; align-items: center; justify-content: center; color: var(--ac); }
   .stem-icone .icone { width: 16px; height: 16px; }
+  .btn-play-stem { width: 36px; height: 36px; flex: none; border-radius: 50%; border: 0; background: var(--grad-primario); color: var(--sobre-ac);
+                   display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+                   box-shadow: 0 10px 30px color-mix(in oklch, var(--ac) 35%, transparent); }
+  .btn-play-stem .icone { width: 14px; height: 14px; }
   .stem-nome { font-weight: 600; }
   .stem-meta { margin-left: auto; font-size: 12px; color: var(--suave); }
   .stem-controles { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -302,16 +306,13 @@
 
       <div class="linha-acao">
         <details id="opcoes">
-          <summary><span class="icone"><svg class="ic"><use href="#i-settings"/></svg></span><span data-i18n="opcoes">Opções</span><span id="resumo-opcoes">24 bits · WebGPU · 0,25</span></summary>
+          <summary><span class="icone"><svg class="ic"><use href="#i-settings"/></svg></span><span data-i18n="opcoes">Opções</span><span id="resumo-opcoes">24 bits · Padrão</span></summary>
           <div class="opcoes-grade">
             <label><span data-i18n="formato">Formato do WAV</span>
               <select id="bits"><option value="24" selected data-i18n="b24">24 bits</option><option value="16" data-i18n="b16">16 bits</option></select>
             </label>
-            <label><span data-i18n="proc">Processamento</span>
-              <select id="backend"><option value="auto" selected data-i18n="auto">Automático (WebGPU, senão CPU)</option><option value="webgpu" data-i18n="webgpu">WebGPU</option><option value="wasm" data-i18n="cpu">CPU</option></select>
-            </label>
-            <label><span data-i18n="sobre">Sobreposição</span>
-              <select id="overlap"><option value="0.1" data-i18n="ov10">0,10</option><option value="0.25" selected data-i18n="ov">0,25 (padrão)</option><option value="0.5" data-i18n="ov50">0,50</option></select>
+            <label><span data-i18n="sobre">Tipo</span>
+              <select id="overlap"><option value="0.1" data-i18n="tipoRapido">Rápido</option><option value="0.25" selected data-i18n="tipoPadrao">Padrão</option><option value="0.5" data-i18n="tipoAlto">Alto</option></select>
             </label>
           </div>
         </details>
@@ -366,6 +367,7 @@
             <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-mic"/></svg></span></span>
             <strong class="stem-nome" data-i18n="nomes.vocals">Voz</strong>
             <span class="stem-meta"></span>
+            <button type="button" class="btn-play-stem" aria-label="Tocar"><span class="icone ic-play"><svg class="ic"><use href="#i-play"/></svg></span><span class="icone ic-pause" hidden><svg class="ic"><use href="#i-pause"/></svg></span></button>
           </div>
           <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
             <path class="onda-fundo" d=""/>
@@ -387,6 +389,7 @@
             <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-drum"/></svg></span></span>
             <strong class="stem-nome" data-i18n="nomes.drums">Bateria</strong>
             <span class="stem-meta"></span>
+            <button type="button" class="btn-play-stem" aria-label="Tocar"><span class="icone ic-play"><svg class="ic"><use href="#i-play"/></svg></span><span class="icone ic-pause" hidden><svg class="ic"><use href="#i-pause"/></svg></span></button>
           </div>
           <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
             <path class="onda-fundo" d=""/>
@@ -408,6 +411,7 @@
             <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-lines"/></svg></span></span>
             <strong class="stem-nome" data-i18n="nomes.bass">Baixo</strong>
             <span class="stem-meta"></span>
+            <button type="button" class="btn-play-stem" aria-label="Tocar"><span class="icone ic-play"><svg class="ic"><use href="#i-play"/></svg></span><span class="icone ic-pause" hidden><svg class="ic"><use href="#i-pause"/></svg></span></button>
           </div>
           <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
             <path class="onda-fundo" d=""/>
@@ -429,6 +433,7 @@
             <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-music"/></svg></span></span>
             <strong class="stem-nome" data-i18n="nomes.other">Outros</strong>
             <span class="stem-meta"></span>
+            <button type="button" class="btn-play-stem" aria-label="Tocar"><span class="icone ic-play"><svg class="ic"><use href="#i-play"/></svg></span><span class="icone ic-pause" hidden><svg class="ic"><use href="#i-pause"/></svg></span></button>
           </div>
           <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
             <path class="onda-fundo" d=""/>

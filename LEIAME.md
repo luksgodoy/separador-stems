@@ -16,7 +16,7 @@ Só entram os pesos do htdemucs: o BS-Roformer-SW e o DrumSep (licença de uso p
 | `coi-sw.js`, `_headers` | isolamento entre origens (COOP/COEP), que o WASM precisa para usar várias threads. O `_headers` vale no Cloudflare Pages; o service worker cobre o GitHub Pages, que não deixa configurar cabeçalho |
 | `modelo/` | **gerado** (não versionado, ver `.gitignore`): `manifesto.json` + 5 pedaços de até 20 MB |
 | `ferramentas/preparar_modelo.py` | gera `modelo/` a partir de `~/Stem Pessoal/modelos/htdemucs_seg343980.onnx` |
-| `teste/` | `referencia.py` (Python), `validar.mjs` (Node) e `navegador.mjs` (Chrome sem janela) |
+| `teste/` | `referencia.py` (Python), `validar.mjs` (Node), `navegador.mjs` (Chrome sem janela, com o modelo) e `interface.mjs` (Chrome sem janela, só a interface: Tipo, play por faixa) |
 
 ## Decisão sobre o modelo: pesos fp16, cálculo em fp32, servido em pedaços junto com o site
 
@@ -99,7 +99,8 @@ cd teste
 "$HOME/Stem Pessoal/.venv/bin/python" referencia.py /tmp/ref                 # referência Python
 node validar.mjs /tmp/ref                                                   # STFT/ISTFT
 ORT_DIR=/caminho node validar.mjs /tmp/ref /caminho/htdemucs_fp16.onnx fp16  # + modelo no WASM (Node)
-ORT_DIR=/caminho node navegador.mjs /tmp/ref webgpu                         # página no Chrome (servidor no ar)
+ORT_DIR=/caminho node navegador.mjs /tmp/ref webgpu                         # página no Chrome (servidor no ar); o backend vai por ?teste&backend=, a página não tem seletor
+ORT_DIR=/caminho node interface.mjs 8090                                    # interface sem rodar o modelo
 ```
 
 `preparar_modelo.py --so-onnx --saida /caminho` grava o `.onnx` inteiro, que o `validar.mjs` usa.

@@ -9,11 +9,14 @@ const PICOS = 96;
 const LARGURA = 384;                 // viewBox das ondas
 const params = new URLSearchParams(location.search);
 // onde estao manifesto.json e os pedacos do modelo; ?modelo=URL troca (ex.: Hugging Face)
+// Processamento: o app sempre pede "auto" (WebGPU, com queda para WASM no Worker); nao ha seletor na pagina.
+// So para o teste automatizado (?teste&backend=wasm|webgpu) o backend pode ser forcado, sem aparecer na UI.
+const BACKEND = params.has("teste") && ["webgpu", "wasm"].includes(params.get("backend")) ? params.get("backend") : "auto";
 const MODELO_BASE = new URL(params.get("modelo") || "./modelo/", location.href).href;
 
 const $ = (id) => document.getElementById(id);
 const el = { zona: $("zona"), entrada: $("entrada"), nome: $("arquivo-nome"), meta: $("arquivo-meta"), pronto: $("arquivo-pronto"),
-  ondaArquivo: $("onda-arquivo"), bits: $("bits"), backend: $("backend"), overlap: $("overlap"), resumoOpcoes: $("resumo-opcoes"),
+  ondaArquivo: $("onda-arquivo"), bits: $("bits"), overlap: $("overlap"), resumoOpcoes: $("resumo-opcoes"),
   separar: $("separar"), cancelar: $("cancelar"), novo: $("btn-novo"), tentar: $("btn-tentar"), novoErro: $("btn-novo-erro"),
   selecao: $("tela-selecao"), zonaInicial: $("zona-inicial"), zonaArquivo: $("zona-arquivo"),
   painel: $("painel-status"), anel: $("anel"), anelPct: $("anel-pct"), texto: $("status-texto"), barra: $("barra"),
@@ -104,8 +107,8 @@ function atualizarBotaoSeparar() { el.separar.disabled = !(arquivo && dec) || oc
 
 // ---------------------------------------------------------------- resumo das opcoes
 const curto = (sel) => (sel.selectedOptions[0]?.textContent || "").replace(/\s*\(.*\)\s*$/, "").trim();
-function atualizarResumoOpcoes() { el.resumoOpcoes.textContent = `${curto(el.bits)} · ${curto(el.backend)} · ${curto(el.overlap)}`; }
-[el.bits, el.backend, el.overlap].forEach((s) => s.addEventListener("change", atualizarResumoOpcoes));
+function atualizarResumoOpcoes() { el.resumoOpcoes.textContent = `${curto(el.bits)} · ${curto(el.overlap)}`; }
+[el.bits, el.overlap].forEach((s) => s.addEventListener("change", atualizarResumoOpcoes));
 
 // ---------------------------------------------------------------- ondas (SVG de area, 96 picos)
 // pico de cada bloco = maior |amostra| entre os dois canais (sem normalizar: o que e baixo parece baixo)
@@ -389,7 +392,12 @@ let quadro = 0;
 
 const algumSolo = () => ORDEM.some((n) => estado[n].solo);
 const ativo = (n) => (algumSolo() ? estado[n].solo : !estado[n].mudo);
-const ganhoEfetivo = (n) => (ativo(n) ? estado[n].volume / 100 : 0);
+// Decisao: cada faixa tem seu proprio play, independente. `ativas` e o conjunto de faixas ligadas; as 4 fontes
+// partem juntas no mesmo relogio (inicioCtx/deslocamento) e ligar/desligar uma faixa so mexe no ganho dela, entao
+// as outras seguem tocando e a posicao e continua. Ganho = faixa ligada E ativa pela regra de Mudo/Solo ? volume : 0.
+// Topo: play liga as 4; pause (qualquer faixa tocando) desliga todas e congela a posicao. Tocando = ativas nao vazio.
+const ativas = new Set();
+const ganhoEfetivo = (n) => (ativas.has(n) && ativo(n) ? estado[n].volume / 100 : 0);
 function aplicarEstado() {
   for (const n of ORDEM) {
     const c = cartao(n), e = estado[n];
@@ -408,9 +416,17 @@ function atualizarTempo() {
 function iconePlay() {
   el.iconePlay.hidden = tocando; el.iconePause.hidden = !tocando;
   el.play.setAttribute("aria-label", T(tocando ? "pausar" : "tocar"));
+  for (const n of ORDEM) {
+    const c = cartao(n), ligado = ativas.has(n);
+    c.querySelector(".ic-play").hidden = ligado; c.querySelector(".ic-pause").hidden = !ligado;
+    c.querySelector(".btn-play-stem").setAttribute("aria-label", `${T(ligado ? "pausar" : "tocar")} ${T("nomes." + n)}`);
+  }
 }
-function tocar() {
+/** Liga as faixas `quais`; se nada tocava, inicia as 4 fontes (mudas as nao ligadas) a partir de `deslocamento`. */
+function tocar(quais = ORDEM) {
   if (!buffers) return;
+  for (const n of quais) ativas.add(n);
+  if (tocando) { aplicarEstado(); iconePlay(); return; }
   ctx = ctx || new AudioContext({ sampleRate: TAXA });
   if (ctx.state === "suspended") ctx.resume();
   fontes = {};
@@ -420,7 +436,7 @@ function tocar() {
     src.connect(gain).connect(ctx.destination);
     fontes[n] = { src, gain };
   }
-  const quando = ctx.currentTime + 0.05;   // 50 ms de folga para os quatro comecarem juntos
+  const quando = ctx.currentTime + 0.05;   // 50 ms de folga para as fontes comecarem juntas
   inicioCtx = quando - deslocamento;
   for (const n of ORDEM) fontes[n].src.start(quando, deslocamento);
   tocando = true;
@@ -439,14 +455,23 @@ function parar(zerar) {
   cancelAnimationFrame(quadro);
   if (fontes) { for (const n of ORDEM) { try { fontes[n].src.stop(); } catch {} fontes[n].src.disconnect(); fontes[n].gain.disconnect(); } fontes = null; }
   tocando = false;
+  ativas.clear();
   if (zerar) deslocamento = 0;
   iconePlay();
   atualizarTempo();
 }
+// topo: tocando (qualquer faixa) -> pausa tudo; parado -> liga as 4
 el.play.addEventListener("click", () => (tocando ? pausar() : tocar()));
+// cartao: liga/desliga so aquela faixa; ao desligar a ultima, pausa (posicao congelada)
+function cliqueFaixa(n) {
+  if (!ativas.has(n)) { tocar([n]); return; }
+  ativas.delete(n);
+  if (ativas.size) { aplicarEstado(); iconePlay(); } else pausar();
+}
 
 for (const n of ORDEM) {
   const c = cartao(n);
+  c.querySelector(".btn-play-stem").addEventListener("click", () => cliqueFaixa(n));
   c.querySelector(".btn-mudo").addEventListener("click", () => { estado[n].mudo = !estado[n].mudo; aplicarEstado(); });
   c.querySelector(".btn-solo").addEventListener("click", () => { estado[n].solo = !estado[n].solo; aplicarEstado(); });
   c.querySelector(".volume").addEventListener("input", (e) => { estado[n].volume = Number(e.target.value); aplicarEstado(); });
@@ -489,7 +514,7 @@ async function separar() {
     if (duracao > 15 * 60) el.avisos.textContent += L().longo(mmss(duracao)) + "\n";
     const { esq, dir } = dec; dec = null;   // os buffers vao para o Worker; "tentar de novo"/cancelar decodificam outra vez
     trabalhador = trabalhador || novoTrabalhador();
-    trabalhador.postMessage({ tipo: "separar", esq, dir, base: MODELO_BASE, backend: el.backend.value,
+    trabalhador.postMessage({ tipo: "separar", esq, dir, base: MODELO_BASE, backend: BACKEND,
       overlap: Number(el.overlap.value) }, [esq.buffer, dir.buffer]);
   } catch (e) {
     if (minha !== rodada) return;

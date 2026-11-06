@@ -23,7 +23,8 @@ const pag = await nav.newPage();
 const logs = [];
 pag.on("console", (m) => logs.push(`[console.${m.type()}] ${m.text()}`));
 pag.on("pageerror", (e) => logs.push(`[pageerror] ${e.message}`));
-await pag.goto(`http://127.0.0.1:${porta}/?teste${process.env.EXTRA || ""}`, { waitUntil: "load" });
+// o backend nao tem seletor na pagina: o app.js so o aceita por ?backend= quando ha ?teste
+await pag.goto(`http://127.0.0.1:${porta}/?teste&backend=${backend}${process.env.EXTRA || ""}`, { waitUntil: "load" });
 // o service worker recarrega a pagina uma vez para ficar crossOriginIsolated
 await pag.waitForFunction(() => self.crossOriginIsolated, { timeout: 15000 }).catch(() => {});
 await pag.waitForFunction(() => window.separadorTeste, { timeout: 15000 });
@@ -34,7 +35,6 @@ const adaptador = await pag.evaluate(async () => {
 const isolado = await pag.evaluate(() => self.crossOriginIsolated);
 console.log(`Chrome ${await nav.version()} | adaptador WebGPU: ${adaptador} | crossOriginIsolated: ${isolado}`);
 
-await pag.select("#backend", backend);
 const entrada = await pag.$("#entrada");
 await entrada.uploadFile(WAV);
 await pag.click("#separar");
