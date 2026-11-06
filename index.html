@@ -6,107 +6,465 @@
 <title>Separador de Stems</title>
 <link rel="icon" href="data:,">
 <meta name="description" content="Separa voz, bateria, baixo e outros instrumentos direto no seu navegador. Nada é enviado para servidor.">
+<meta name="color-scheme" content="dark">
 <style>
+  /* ============================================================================================
+     Interface "1f Glass" (handoff do Claude Design). Tema escuro único.
+
+     COMO OS ESTADOS FUNCIONAM (o JS alterna, o CSS só esconde):
+       - Cada estado é uma seção do HTML. Esconder = atributo `hidden` ou classe `.oculto`
+         (as duas têm o mesmo efeito, abaixo). O app.js legado usa `.oculto`; o código novo usa `hidden`.
+       - #tela-selecao   estados "inicial" e "arquivo": hero + #zona + opções + botões.
+                         Dentro de #zona: #zona-inicial (ícone upload) OU #zona-arquivo (cartão do arquivo).
+       - #painel-status  estado "processando".
+       - #painel-erro    estado "erro" (cartão do arquivo + #toast).
+       - #painel-resultado  estado "resultado" (transporte + 4 cartões de stem).
+     Nada de HTML é gerado em tempo de execução para os cartões: o JS só preenche texto, `d` dos
+     paths do waveform, `href`/`aria-pressed`/`value` e alterna `hidden`.
+     ============================================================================================ */
   :root {
-    --fundo: #f6f5f2; --cartao: #ffffff; --texto: #1d1d1b; --suave: #6b6a66; --linha: #dedcd6;
-    --acento: #2f5bd3; --acento-texto: #ffffff; --ok: #1f7a4a; --erro: #b3261e; --barra: #e7e5df;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --fundo: #141413; --cartao: #1e1e1c; --texto: #ecebe6; --suave: #a3a19b; --linha: #34332f;
-      --acento: #7b9cff; --acento-texto: #10131c; --ok: #6fcf97; --erro: #ff8a80; --barra: #2b2a27;
-    }
+    --ac: oklch(0.80 0.12 290);
+    --ac2: #8fd3ff; --azul: #4060ff;
+    --fundo: #0f1020; --texto: #eceaf6; --suave: #a7a5bd; --miolo: #171836;
+    --ok: #8fe3b0; --erro: #ff8a80; --erro-texto: #d9b7b3;
+    --sobre-ac: #0b0b14;
+    --vidro: rgba(255,255,255,.05); --vidro-botao: rgba(255,255,255,.06); --vidro-leve: rgba(255,255,255,.08); --vidro-forte: rgba(255,255,255,.14);
+    --borda-1: rgba(255,255,255,.08); --borda-2: rgba(255,255,255,.10); --borda-3: rgba(255,255,255,.12);
+    --grad-primario: linear-gradient(135deg, var(--ac), color-mix(in oklch, var(--ac) 70%, var(--azul)));
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--fundo); color: var(--texto);
-         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-  h1 { font-size: 1.7rem; margin: 0 0 4px; letter-spacing: -0.01em; }
-  .sub { color: var(--suave); margin: 0 0 24px; }
-  .cartao { background: var(--cartao); border: 1px solid var(--linha); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-  #zona { border: 2px dashed var(--linha); border-radius: 12px; padding: 32px 16px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; }
-  #zona.sobre { border-color: var(--acento); background: color-mix(in srgb, var(--acento) 8%, transparent); }
-  #zona strong { display: block; font-size: 1.1rem; margin-bottom: 4px; }
-  #zona span { color: var(--suave); font-size: .92rem; }
-  .opcoes { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 16px; align-items: end; }
-  label { font-size: .85rem; color: var(--suave); display: flex; flex-direction: column; gap: 4px; }
-  select, button { font: inherit; color: var(--texto); background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; padding: 7px 10px; }
-  button.primario { background: var(--acento); color: var(--acento-texto); border-color: var(--acento); font-weight: 600; padding: 9px 18px; cursor: pointer; }
-  button:disabled { opacity: .5; cursor: default; }
-  #arquivo-nome { font-weight: 600; margin-top: 12px; word-break: break-all; }
-  .barra { height: 10px; background: var(--barra); border-radius: 99px; overflow: hidden; margin: 10px 0 6px; }
-  .barra > div { height: 100%; width: 0; background: var(--acento); transition: width .25s; }
-  #status-texto { font-weight: 600; }
-  #status-detalhe, .nota { color: var(--suave); font-size: .88rem; }
-  #avisos { color: var(--erro); font-size: .88rem; white-space: pre-wrap; }
-  .stem { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--linha); }
-  .stem:first-of-type { border-top: 0; }
-  .stem h3 { margin: 0; font-size: 1rem; }
-  .stem audio { grid-column: 1 / -1; width: 100%; }
-  .stem a { color: var(--acento); font-weight: 600; text-decoration: none; white-space: nowrap; }
-  .oculto { display: none; }
-  details { margin-top: 8px; }
-  summary { cursor: pointer; color: var(--suave); }
-  code { font-size: .85em; }
+  [hidden], .oculto { display: none !important; }
+  body { margin: 0; background: var(--fundo); }
+  details > summary { list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  a { color: #b9c6ff; }
+  a:hover { color: #dfe5ff; }
+  button, select, input { font-family: system-ui, sans-serif; }
+  button:focus-visible, summary:focus-visible, #zona:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+
+  /* ---- página e brilhos de fundo ---- */
+  .pagina { background: var(--fundo); color: var(--texto); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+            min-height: 100dvh; display: flex; flex-direction: column; position: relative; overflow: hidden; isolation: isolate; }
+  .brilhos { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .brilho { position: absolute; border-radius: 50%; filter: blur(30px); }
+  .brilho-a { width: 520px; height: 520px; left: -10%; top: -20%;
+              background: radial-gradient(circle, color-mix(in oklch, var(--ac) 32%, transparent), transparent 65%);
+              animation: deriva 18s ease-in-out infinite; }
+  .brilho-b { width: 460px; height: 460px; right: -10%; bottom: -20%;
+              background: radial-gradient(circle, rgba(80,140,255,.22), transparent 65%);
+              animation: deriva 24s ease-in-out infinite reverse; }
+  @keyframes deriva { 0% { transform: translate(0,0); } 50% { transform: translate(60px,-40px); } 100% { transform: translate(0,0); } }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .brilho-a, .brilho-b, .anel-giro { animation: none; }
+    * { transition-duration: .01ms !important; }
+  }
+
+  .conteudo { position: relative; z-index: 1; max-width: 880px; width: 100%; margin: 0 auto; padding: 28px 28px 48px;
+              display: flex; flex-direction: column; gap: 20px; flex: 1; }
+  .ic { width: 100%; height: 100%; display: block; }
+  .icone { display: inline-flex; flex: none; }
+
+  /* ---- cartão glass (base) ---- */
+  .vidro { background: var(--vidro); border: 1px solid var(--borda-3); border-radius: 24px;
+           -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+           box-shadow: 0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08); }
+
+  /* ---- header ---- */
+  .topo { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .marca { display: flex; align-items: center; gap: 12px; }
+  .marca-logo { width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, var(--ac), color-mix(in oklch, var(--ac) 60%, var(--azul)));
+                display: inline-flex; align-items: center; justify-content: center; color: var(--sobre-ac);
+                box-shadow: 0 8px 24px color-mix(in oklch, var(--ac) 40%, transparent); }
+  .marca-logo .icone { width: 18px; height: 18px; }
+  .marca strong { font-size: 16px; font-weight: 600; }
+  .topo-dir { display: flex; align-items: center; gap: 12px; }
+  .privacidade { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--suave); background: var(--vidro);
+                 border: 1px solid var(--borda-2); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+  .privacidade .icone { width: 13px; height: 13px; }
+  .idiomas { display: flex; background: var(--vidro); border: 1px solid var(--borda-2); border-radius: 999px; padding: 3px; }
+  .idiomas button { border: 0; border-radius: 999px; padding: 5px 12px; font: 600 12px system-ui, sans-serif; cursor: pointer;
+                    background: transparent; color: #9aa1ac; }
+  .idiomas button[aria-pressed="true"] { background: var(--ac); color: #0b0b0c; }
+
+  /* ---- hero ---- */
+  .hero { text-align: center; padding: 16px 0 4px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .hero h1 { margin: 0; font-size: clamp(30px, 4.5vw, 44px); font-weight: 600; letter-spacing: -0.025em; line-height: 1.1; text-wrap: balance; }
+  .hero h1 .destaque { background: linear-gradient(90deg, var(--ac), var(--ac2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 0; color: var(--suave); max-width: 52ch; text-wrap: pretty; }
+
+  /* ---- drop zone ---- */
+  #zona { padding: 36px 28px; display: flex; flex-direction: column; align-items: center; gap: 16px; cursor: pointer;
+          transition: border-color .2s, background .2s; }
+  #zona:hover, #zona.sobre { border-color: var(--ac); background: rgba(255,255,255,.07); }
+  .zona-inicial { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .zona-icone { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, color-mix(in oklch, var(--ac) 30%, transparent), rgba(255,255,255,.04));
+                border: 1px solid var(--borda-3); display: inline-flex; align-items: center; justify-content: center; color: var(--ac); }
+  .zona-icone .icone { width: 28px; height: 28px; }
+  .zona-titulo { font-size: 17px; font-weight: 600; }
+  .zona-dica { font-size: 13px; color: var(--suave); text-align: center; max-width: 50ch; text-wrap: pretty; }
+  .zona-arquivo { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+  .arquivo-linha { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .arquivo-icone { width: 40px; height: 40px; border-radius: 12px; background: color-mix(in oklch, var(--ac) 20%, transparent);
+                   display: inline-flex; align-items: center; justify-content: center; color: var(--ac); }
+  .arquivo-icone .icone { width: 18px; height: 18px; }
+  .arquivo-texto { display: flex; flex-direction: column; min-width: 0; }
+  .arquivo-texto strong { font-weight: 600; word-break: break-all; }
+  .arquivo-meta { font-size: 12px; color: var(--suave); }
+  .arquivo-pronto { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ok); }
+  .arquivo-pronto .icone { width: 14px; height: 14px; }
+  .onda-caixa { background: rgba(0,0,0,.25); border-radius: 14px; padding: 10px 14px; }
+
+  /* ---- waveform (SVG de área) ---- */
+  .onda { width: 100%; height: 64px; display: block; }
+  .onda-fundo { fill: rgba(255,255,255,.14); }
+  .onda-frente { fill: var(--ac); }
+
+  /* ---- opções + botões ---- */
+  .linha-acao { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #opcoes { flex: 1; min-width: 240px; background: rgba(255,255,255,.04); border: 1px solid var(--borda-1); border-radius: 16px; padding: 12px 16px; }
+  #opcoes > summary { cursor: pointer; font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 8px; }
+  #opcoes > summary .icone { width: 14px; height: 14px; }
+  #resumo-opcoes { margin-left: auto; font-size: 12px; }
+  .opcoes-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; margin-top: 14px; }
+  .opcoes-grade label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--suave); }
+  .opcoes-grade select { font: 13px system-ui, sans-serif; color: var(--texto); background: var(--vidro-botao); border: 1px solid var(--borda-2); border-radius: 10px; padding: 8px 10px; }
+  .botoes { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; font: 600 14px system-ui, sans-serif; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .btn .icone { width: 16px; height: 16px; }
+  .btn-primario { background: var(--grad-primario); color: var(--sobre-ac); border: 0; padding: 13px 24px;
+                  box-shadow: 0 10px 30px color-mix(in oklch, var(--ac) 35%, transparent); }
+  .btn-secundario { background: var(--vidro-botao); color: var(--texto); border: 1px solid var(--borda-2); padding: 12px 20px; }
+  .btn-secundario:hover { background: var(--vidro-forte); }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  /* ---- processando ---- */
+  #painel-status { padding: 32px; display: flex; flex-direction: column; gap: 20px; align-items: center; text-align: center; }
+  .anel { --p: 0%; width: 88px; height: 88px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative;
+          background: conic-gradient(var(--ac) 0 var(--p), rgba(255,255,255,.08) var(--p) 100%); }
+  .anel-giro { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(transparent 0 70%, rgba(255,255,255,.25) 85%, transparent 100%);
+               animation: girar 2s linear infinite; }
+  .anel-miolo { width: 70px; height: 70px; border-radius: 50%; background: var(--miolo); display: flex; align-items: center; justify-content: center;
+                font: 600 16px system-ui, sans-serif; color: var(--texto); position: relative; }
+  .proc-texto { display: flex; flex-direction: column; gap: 4px; }
+  #status-texto { font-size: 18px; font-weight: 600; }
+  #status-detalhe { color: var(--suave); font-size: 13px; }
+  #status-detalhe:empty { display: none; }
+  .trilho { width: 100%; max-width: 420px; height: 6px; border-radius: 999px; background: var(--vidro-leve); overflow: hidden; position: relative; }
+  #barra { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--ac), var(--ac2)); transition: width .25s; }
+  #avisos { color: var(--erro); font-size: 12px; white-space: pre-wrap; }
+  #avisos:empty { display: none; }
+  #cancelar { font-size: 13px; padding: 10px 18px; }
+
+  /* ---- erro (cartão do arquivo) ---- */
+  #painel-erro { padding: 36px 28px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  #painel-erro .zona-icone { background: rgba(255,255,255,.04); color: var(--suave); }
+  #painel-erro .zona-icone .icone { width: 28px; height: 28px; }
+  .erro-acoes { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .erro-acoes .btn-primario { padding: 12px 22px; }
+
+  /* ---- transporte ---- */
+  #transporte { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--vidro); border: 1px solid var(--borda-3); border-radius: 20px; padding: 12px 16px;
+                -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+  #btn-play { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--grad-primario); color: var(--sobre-ac);
+              display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+              box-shadow: 0 8px 24px color-mix(in oklch, var(--ac) 35%, transparent); }
+  #btn-play .icone { width: 18px; height: 18px; }
+  .transporte-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .transporte-tempo { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .transporte-tempo .total { color: var(--suave); font-weight: 400; }
+  #resumo { font-size: 12px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #baixar-todos { font-size: 13px; padding: 10px 16px; background: var(--vidro-leve); border: 1px solid var(--borda-3); color: var(--texto); }
+  #baixar-todos:hover { background: var(--vidro-forte); }
+
+  /* ---- cartões de stem ---- */
+  #grade-stems { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+  .stem-cartao { background: var(--vidro); border: 1px solid var(--borda-2); border-radius: 20px; padding: 16px 18px;
+                 -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+                 display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); transition: opacity .2s; }
+  .stem-cartao[data-inativo="true"] { opacity: .35; }
+  .stem-topo { display: flex; align-items: center; gap: 10px; }
+  .stem-icone { width: 32px; height: 32px; border-radius: 10px; background: color-mix(in oklch, var(--ac) 18%, transparent);
+                display: inline-flex; align-items: center; justify-content: center; color: var(--ac); }
+  .stem-icone .icone { width: 16px; height: 16px; }
+  .stem-nome { font-weight: 600; }
+  .stem-meta { margin-left: auto; font-size: 12px; color: var(--suave); }
+  .stem-controles { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .stem-controles button { height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--borda-3); font: 600 12px system-ui, sans-serif; cursor: pointer;
+                           background: var(--vidro-botao); color: var(--texto); white-space: nowrap; }
+  .stem-controles .btn-mudo[aria-pressed="true"] { background: #ff8a80; color: #2a0d0a; }
+  .stem-controles .btn-solo[aria-pressed="true"] { background: var(--ac); color: var(--sobre-ac); }
+  .stem-vol-icone { width: 14px; height: 14px; display: inline-flex; color: var(--suave); margin-left: 4px; }
+  .stem-controles input[type=range] { flex: 1; min-width: 60px; accent-color: var(--ac); height: 30px; margin: 0; }
+  .stem-controles .btn-wav { display: inline-flex; align-items: center; gap: 6px; background: var(--vidro-leve); color: var(--ac); }
+  .stem-controles .btn-wav:hover { background: var(--vidro-forte); }
+  .stem-controles .btn-wav .icone { width: 14px; height: 14px; }
+
+  /* ---- toast de erro ---- */
+  #toast { position: absolute; right: 20px; bottom: 20px; z-index: 2; max-width: 380px; background: rgba(40,16,24,.75); border: 1px solid rgba(255,120,110,.35);
+           border-radius: 16px; padding: 14px 16px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+           display: flex; gap: 12px; align-items: flex-start; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+  #toast > .icone { width: 20px; height: 20px; color: var(--erro); }
+  .toast-texto { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  #toast-titulo { font-size: 14px; font-weight: 700; }
+  #toast-detalhe { font-size: 12px; color: var(--erro-texto); text-wrap: pretty; }
+  #toast-fechar { width: 24px; height: 24px; border: 0; background: transparent; color: var(--erro-texto); cursor: pointer; padding: 0; display: inline-flex; }
+  #toast-fechar .icone { width: 16px; height: 16px; margin: auto; }
+
+  /* ---- como funciona ---- */
+  #como { margin-top: auto; color: var(--suave); font-size: 13px; }
+  #como > summary { cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  #como > summary .icone { width: 12px; height: 12px; }
+  #como p { margin: 8px 0 0; max-width: 70ch; text-wrap: pretty; }
+  #como p strong { color: var(--texto); font-weight: 500; }
+
+  @media (max-width: 560px) {
+    .conteudo { padding: 20px 16px 40px; }
+    #zona, #painel-erro { padding: 28px 16px; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>Separador de Stems</h1>
-  <p class="sub">Voz, bateria, baixo e outros instrumentos, separados <strong>no seu navegador</strong>.
-     O áudio não sai do seu computador: não há servidor nem upload.</p>
+<!-- Ícones Lucide (MIT), traço 2, pontas redondas. Uso: <span class="icone"><svg class="ic"><use href="#i-nome"/></svg></span> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></symbol>
+    <symbol id="i-drum" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 8 8"/><path d="m22 2-8 8"/><ellipse cx="12" cy="9" rx="10" ry="5"/><path d="M7 13.4v7.9"/><path d="M12 14v8"/><path d="M17 13.4v7.9"/><path d="M2 9v8a10 5 0 0 0 20 0V9"/></symbol>
+    <symbol id="i-lines" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v2"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><circle cx="3" cy="17" r="1"/><path d="M2 17v-3a4 4 0 0 1 8 0v3"/><circle cx="9" cy="17" r="1"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  </defs>
+</svg>
 
-  <section class="cartao">
-    <div id="zona" tabindex="0" role="button" aria-label="Escolher arquivo de áudio">
-      <strong>Arraste um arquivo de áudio aqui</strong>
-      <span>ou clique para escolher (WAV, MP3, FLAC, OGG, M4A — o que o navegador souber abrir)</span>
-    </div>
-    <input id="entrada" type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac" class="oculto">
-    <div id="arquivo-nome"></div>
-    <div class="opcoes">
-      <label>Formato do WAV
-        <select id="bits"><option value="24" selected>24 bits</option><option value="16">16 bits</option></select>
-      </label>
-      <label>Processamento
-        <select id="backend">
-          <option value="auto" selected>Automático (WebGPU, senão CPU)</option>
-          <option value="webgpu">Só WebGPU (placa de vídeo)</option>
-          <option value="wasm">Só CPU (WASM)</option>
-        </select>
-      </label>
-      <label>Sobreposição
-        <select id="overlap"><option value="0.1">0,10 (mais rápido)</option><option value="0.25" selected>0,25 (padrão)</option><option value="0.5">0,50 (mais lento)</option></select>
-      </label>
-      <button id="separar" class="primario" disabled>Separar</button>
-      <button id="cancelar" class="oculto">Cancelar</button>
-    </div>
-  </section>
+<div class="pagina">
+  <div class="brilhos" aria-hidden="true"><div class="brilho brilho-a"></div><div class="brilho brilho-b"></div></div>
 
-  <section id="painel-status" class="cartao oculto" aria-live="polite">
-    <div id="status-texto"></div>
-    <div class="barra"><div id="barra"></div></div>
-    <div id="status-detalhe"></div>
-    <div id="avisos"></div>
-  </section>
+  <main class="conteudo">
+    <header class="topo">
+      <div class="marca">
+        <span class="marca-logo"><span class="icone"><svg class="ic"><use href="#i-headphones"/></svg></span></span>
+        <strong data-i18n="titulo">Separador de Stems</strong>
+      </div>
+      <div class="topo-dir">
+        <span class="privacidade"><span class="icone"><svg class="ic"><use href="#i-lock"/></svg></span><span data-i18n="privacidade">Nada sai do seu computador</span></span>
+        <div class="idiomas" role="group" data-i18n-aria="idiomaAria" aria-label="Idioma">
+          <button type="button" id="idioma-pt" data-idioma="pt" aria-pressed="true">PT</button>
+          <button type="button" id="idioma-en" data-idioma="en" aria-pressed="false">EN</button>
+        </div>
+      </div>
+    </header>
 
-  <section id="painel-resultado" class="cartao oculto">
-    <div id="stems"></div>
-    <p class="nota" id="resumo"></p>
-  </section>
+    <!-- estados "inicial" e "arquivo" -->
+    <section id="tela-selecao" style="display:contents">
+      <div class="hero">
+        <h1><span data-i18n="sub1">Voz, bateria, baixo e outros instrumentos, separados</span> <span class="destaque" data-i18n="sub2">no seu navegador</span></h1>
+        <p data-i18n="sub3b">O áudio não sai do seu computador: não há servidor nem upload.</p>
+      </div>
 
-  <section class="cartao nota">
-    <strong>Como funciona.</strong> O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a>
-    (Demucs v4, Meta/FAIR, licença MIT) roda aqui mesmo, com o
-    <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Na primeira vez são baixados ~90 MB de modelo,
-    guardados no cache do navegador para as próximas. A saída é sempre 44,1 kHz estéreo.
-    <details>
-      <summary>Requisitos</summary>
-      Computador com 4 GB de RAM livres ou mais. Chrome/Edge 113+ usam a placa de vídeo (WebGPU) e são os mais
-      rápidos; Firefox e Safari usam a CPU e demoram mais. Celular não é recomendado. Músicas acima de 15 minutos
-      podem esgotar a memória.
+      <div id="zona" class="vidro" tabindex="0" role="button" aria-label="Escolher arquivo de áudio" data-i18n-aria="zonaAria">
+        <div id="zona-inicial" class="zona-inicial">
+          <span class="zona-icone"><span class="icone"><svg class="ic"><use href="#i-upload"/></svg></span></span>
+          <strong class="zona-titulo" data-i18n="arraste">Arraste um arquivo de áudio aqui</strong>
+          <span class="zona-dica" data-i18n="ouClique">ou clique para escolher (WAV, MP3, FLAC, OGG, M4A — o que o navegador souber abrir)</span>
+        </div>
+        <div id="zona-arquivo" class="zona-arquivo" hidden>
+          <div class="arquivo-linha">
+            <span class="arquivo-icone"><span class="icone"><svg class="ic"><use href="#i-file"/></svg></span></span>
+            <div class="arquivo-texto"><strong id="arquivo-nome"></strong><span id="arquivo-meta" class="arquivo-meta"></span></div>
+            <span id="arquivo-pronto" class="arquivo-pronto"><span class="icone"><svg class="ic"><use href="#i-check"/></svg></span><span data-i18n="prontoPara">Pronto para separar</span></span>
+          </div>
+          <div class="onda-caixa">
+            <svg id="onda-arquivo" class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
+              <path class="onda-fundo" d=""/>
+              <clipPath id="clip-arquivo"><rect class="onda-corte" x="0" y="0" width="0" height="100"/></clipPath>
+              <path class="onda-frente" d="" clip-path="url(#clip-arquivo)"/>
+              <line class="onda-cabeca" x1="0" x2="0" y1="0" y2="100" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85" hidden/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <input id="entrada" type="file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac" class="oculto">
+
+      <div class="linha-acao">
+        <details id="opcoes">
+          <summary><span class="icone"><svg class="ic"><use href="#i-settings"/></svg></span><span data-i18n="opcoes">Opções</span><span id="resumo-opcoes">24 bits · WebGPU · 0,25</span></summary>
+          <div class="opcoes-grade">
+            <label><span data-i18n="formato">Formato do WAV</span>
+              <select id="bits"><option value="24" selected data-i18n="b24">24 bits</option><option value="16" data-i18n="b16">16 bits</option></select>
+            </label>
+            <label><span data-i18n="proc">Processamento</span>
+              <select id="backend"><option value="auto" selected data-i18n="auto">Automático (WebGPU, senão CPU)</option><option value="webgpu" data-i18n="webgpu">WebGPU</option><option value="wasm" data-i18n="cpu">CPU</option></select>
+            </label>
+            <label><span data-i18n="sobre">Sobreposição</span>
+              <select id="overlap"><option value="0.1" data-i18n="ov10">0,10</option><option value="0.25" selected data-i18n="ov">0,25 (padrão)</option><option value="0.5" data-i18n="ov50">0,50</option></select>
+            </label>
+          </div>
+        </details>
+        <div class="botoes">
+          <button type="button" id="btn-novo" class="btn btn-secundario" hidden data-i18n="novo">Novo arquivo</button>
+          <button type="button" id="separar" class="btn btn-primario" disabled><span class="icone"><svg class="ic"><use href="#i-zap"/></svg></span><span data-i18n="separar">Separar</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- estado "processando" (o app.js legado tira .oculto ao chamar status()) -->
+    <section id="painel-status" class="vidro oculto" aria-live="polite">
+      <div id="anel" class="anel" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="anel-giro"></div>
+        <div id="anel-pct" class="anel-miolo">0%</div>
+      </div>
+      <div class="proc-texto"><strong id="status-texto"></strong><span id="status-detalhe"></span></div>
+      <div class="trilho"><div id="barra"></div></div>
+      <div id="avisos"></div>
+      <button type="button" id="cancelar" class="btn btn-secundario oculto" data-i18n="cancelar">Cancelar</button>
+    </section>
+
+    <!-- estado "erro": cartão do arquivo + #toast mais abaixo -->
+    <section id="painel-erro" class="vidro" hidden>
+      <span class="zona-icone"><span class="icone"><svg class="ic"><use href="#i-file"/></svg></span></span>
+      <strong id="erro-nome" class="zona-titulo"></strong>
+      <span id="erro-meta" class="arquivo-meta"></span>
+      <div class="erro-acoes">
+        <button type="button" id="btn-tentar" class="btn btn-primario" data-i18n="tentar">Tentar de novo</button>
+        <button type="button" id="btn-novo-erro" class="btn btn-secundario" data-i18n="novo">Novo arquivo</button>
+      </div>
+    </section>
+
+    <!-- estado "resultado" -->
+    <section id="painel-resultado" class="oculto" style="display:contents">
+      <div id="transporte">
+        <button type="button" id="btn-play" aria-label="Tocar" data-i18n-aria="tocar">
+          <span id="icone-play" class="icone"><svg class="ic"><use href="#i-play"/></svg></span>
+          <span id="icone-pause" class="icone" hidden><svg class="ic"><use href="#i-pause"/></svg></span>
+        </button>
+        <div class="transporte-info">
+          <strong class="transporte-tempo"><span id="tempo">0:00</span> <span class="total">/ <span id="duracao-total">0:00</span></span></strong>
+          <span id="resumo"></span>
+        </div>
+        <button type="button" id="baixar-todos" class="btn btn-secundario"><span class="icone"><svg class="ic"><use href="#i-download"/></svg></span><span data-i18n="baixarTodos">Baixar todos</span></button>
+      </div>
+
+      <div id="grade-stems">
+        <!-- 4 cartões idênticos (vocals, drums, bass, other). O JS preenche meta, ondas, aria-pressed, value, e alterna data-inativo. -->
+        <div class="stem-cartao" id="stem-vocals" data-stem="vocals">
+          <div class="stem-topo">
+            <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-mic"/></svg></span></span>
+            <strong class="stem-nome" data-i18n="nomes.vocals">Voz</strong>
+            <span class="stem-meta"></span>
+          </div>
+          <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="onda-fundo" d=""/>
+            <clipPath id="clip-vocals"><rect class="onda-corte" x="0" y="0" width="0" height="100"/></clipPath>
+            <path class="onda-frente" d="" clip-path="url(#clip-vocals)"/>
+            <line class="onda-cabeca" x1="0" x2="0" y1="0" y2="100" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85" hidden/>
+          </svg>
+          <div class="stem-controles">
+            <button type="button" class="btn-mudo" aria-pressed="false" data-i18n="mute">Mudo</button>
+            <button type="button" class="btn-solo" aria-pressed="false" data-i18n="solo">Solo</button>
+            <span class="stem-vol-icone"><svg class="ic"><use href="#i-volume"/></svg></span>
+            <input type="range" class="volume" min="0" max="100" value="100" aria-label="Volume" data-i18n-aria="volume">
+            <button type="button" class="btn-wav"><span class="icone"><svg class="ic"><use href="#i-download"/></svg></span>WAV</button>
+          </div>
+        </div>
+
+        <div class="stem-cartao" id="stem-drums" data-stem="drums">
+          <div class="stem-topo">
+            <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-drum"/></svg></span></span>
+            <strong class="stem-nome" data-i18n="nomes.drums">Bateria</strong>
+            <span class="stem-meta"></span>
+          </div>
+          <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="onda-fundo" d=""/>
+            <clipPath id="clip-drums"><rect class="onda-corte" x="0" y="0" width="0" height="100"/></clipPath>
+            <path class="onda-frente" d="" clip-path="url(#clip-drums)"/>
+            <line class="onda-cabeca" x1="0" x2="0" y1="0" y2="100" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85" hidden/>
+          </svg>
+          <div class="stem-controles">
+            <button type="button" class="btn-mudo" aria-pressed="false" data-i18n="mute">Mudo</button>
+            <button type="button" class="btn-solo" aria-pressed="false" data-i18n="solo">Solo</button>
+            <span class="stem-vol-icone"><svg class="ic"><use href="#i-volume"/></svg></span>
+            <input type="range" class="volume" min="0" max="100" value="100" aria-label="Volume" data-i18n-aria="volume">
+            <button type="button" class="btn-wav"><span class="icone"><svg class="ic"><use href="#i-download"/></svg></span>WAV</button>
+          </div>
+        </div>
+
+        <div class="stem-cartao" id="stem-bass" data-stem="bass">
+          <div class="stem-topo">
+            <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-lines"/></svg></span></span>
+            <strong class="stem-nome" data-i18n="nomes.bass">Baixo</strong>
+            <span class="stem-meta"></span>
+          </div>
+          <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="onda-fundo" d=""/>
+            <clipPath id="clip-bass"><rect class="onda-corte" x="0" y="0" width="0" height="100"/></clipPath>
+            <path class="onda-frente" d="" clip-path="url(#clip-bass)"/>
+            <line class="onda-cabeca" x1="0" x2="0" y1="0" y2="100" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85" hidden/>
+          </svg>
+          <div class="stem-controles">
+            <button type="button" class="btn-mudo" aria-pressed="false" data-i18n="mute">Mudo</button>
+            <button type="button" class="btn-solo" aria-pressed="false" data-i18n="solo">Solo</button>
+            <span class="stem-vol-icone"><svg class="ic"><use href="#i-volume"/></svg></span>
+            <input type="range" class="volume" min="0" max="100" value="100" aria-label="Volume" data-i18n-aria="volume">
+            <button type="button" class="btn-wav"><span class="icone"><svg class="ic"><use href="#i-download"/></svg></span>WAV</button>
+          </div>
+        </div>
+
+        <div class="stem-cartao" id="stem-other" data-stem="other">
+          <div class="stem-topo">
+            <span class="stem-icone"><span class="icone"><svg class="ic"><use href="#i-music"/></svg></span></span>
+            <strong class="stem-nome" data-i18n="nomes.other">Outros</strong>
+            <span class="stem-meta"></span>
+          </div>
+          <svg class="onda" viewBox="0 0 384 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="onda-fundo" d=""/>
+            <clipPath id="clip-other"><rect class="onda-corte" x="0" y="0" width="0" height="100"/></clipPath>
+            <path class="onda-frente" d="" clip-path="url(#clip-other)"/>
+            <line class="onda-cabeca" x1="0" x2="0" y1="0" y2="100" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".85" hidden/>
+          </svg>
+          <div class="stem-controles">
+            <button type="button" class="btn-mudo" aria-pressed="false" data-i18n="mute">Mudo</button>
+            <button type="button" class="btn-solo" aria-pressed="false" data-i18n="solo">Solo</button>
+            <span class="stem-vol-icone"><svg class="ic"><use href="#i-volume"/></svg></span>
+            <input type="range" class="volume" min="0" max="100" value="100" aria-label="Volume" data-i18n-aria="volume">
+            <button type="button" class="btn-wav"><span class="icone"><svg class="ic"><use href="#i-download"/></svg></span>WAV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- legado: o app.js atual (mostrar) escreve aqui os <audio> e links; o P2 remove -->
+      <div id="stems" hidden></div>
+    </section>
+
+    <details id="como">
+      <summary><span class="icone"><svg class="ic"><use href="#i-chev"/></svg></span><span data-i18n="comoT">Como funciona</span></summary>
+      <p><span data-i18n-html="comoHtml">O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a> (Demucs v4, Meta/FAIR, licença MIT) roda aqui mesmo, com o <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Na primeira vez são baixados ~90 MB de modelo, guardados no cache do navegador para as próximas. A saída é sempre 44,1 kHz estéreo.</span>
+        <strong data-i18n="req">Requisitos</strong>: <span data-i18n="reqTxt">Computador com 4 GB de RAM livres ou mais. Chrome/Edge 113+ usam a placa de vídeo (WebGPU) e são os mais rápidos; Firefox e Safari usam a CPU e demoram mais. Celular não é recomendado. Músicas acima de 15 minutos podem esgotar a memória.</span></p>
     </details>
-  </section>
-</main>
+  </main>
+
+  <!-- toast de erro (fora do fluxo, canto inferior direito) -->
+  <div id="toast" role="alert" hidden>
+    <span class="icone"><svg class="ic"><use href="#i-alert"/></svg></span>
+    <div class="toast-texto"><strong id="toast-titulo" data-i18n="erro">Não deu certo</strong><span id="toast-detalhe"></span></div>
+    <button type="button" id="toast-fechar" aria-label="Fechar" data-i18n-aria="fechar"><span class="icone"><svg class="ic"><use href="#i-x"/></svg></span></button>
+  </div>
+</div>
+<script type="module" src="idiomas.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>
