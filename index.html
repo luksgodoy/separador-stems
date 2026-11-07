@@ -3,9 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Separador de Stems</title>
-<link rel="icon" href="data:,">
-<meta name="description" content="Separa voz, bateria, baixo e outros instrumentos direto no seu navegador. Nada é enviado para servidor.">
+<title>Sidra · Separador de Stems</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://sidrastems.com/">
+<meta name="description" content="Sidra: separador de stems grátis no navegador. Separe voz, bateria, baixo e outros instrumentos de qualquer música com IA (Demucs). Sem upload, sem cadastro. Free AI stem splitter.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0b0d14">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sidra">
+<meta property="og:title" content="Sidra · Separador de Stems grátis no navegador">
+<meta property="og:description" content="Separe voz, bateria, baixo e outros instrumentos com IA, direto no navegador. Sem upload, sem cadastro. Free stem separator.">
+<meta property="og:url" content="https://sidrastems.com/">
+<meta property="og:image" content="https://sidrastems.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sidra · Free stem separator in your browser">
+<meta name="twitter:description" content="Split vocals, drums, bass and other instruments with AI. Runs locally in your browser: no upload, no sign-up.">
+<meta name="twitter:image" content="https://sidrastems.com/og.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Sidra","alternateName":["Sidra Stems","Sidra Stem Separator"],"url":"https://sidrastems.com/","description":"Free AI stem separator that runs in the browser. Splits a song into vocals, drums, bass and other instruments using the open-source Demucs (htdemucs) model. No upload, no sign-up.","applicationCategory":"MultimediaApplication","operatingSystem":"Any (modern web browser)","browserRequirements":"Requires WebAssembly; WebGPU recommended (Chrome or Edge 113+)","inLanguage":["pt-BR","en"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Separa voz, bateria, baixo e outros","Roda no navegador, sem upload","Exporta WAV 16 ou 24 bits e .zip","Separate vocals, drums, bass and other stems","Runs locally, your audio never leaves your device"]}
+</script>
 <meta name="color-scheme" content="dark">
 <style>
   /* ============================================================================================
@@ -262,7 +282,7 @@
     <header class="topo">
       <div class="marca">
         <span class="marca-logo"><span class="icone"><svg class="ic"><use href="#i-headphones"/></svg></span></span>
-        <strong data-i18n="titulo">Separador de Stems</strong>
+        <strong data-i18n="titulo">Sidra</strong>
       </div>
       <div class="topo-dir">
         <span class="privacidade"><span class="icone"><svg class="ic"><use href="#i-lock"/></svg></span><span data-i18n="privacidade">Nada sai do seu computador</span></span>
@@ -455,8 +475,27 @@
 
     <details id="como">
       <summary><span class="icone"><svg class="ic"><use href="#i-chev"/></svg></span><span data-i18n="comoT">Como funciona</span></summary>
-      <p><span data-i18n-html="comoHtml">O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a> (Demucs v4, Meta/FAIR, licença MIT) roda aqui mesmo, com o <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Na primeira vez são baixados ~90 MB de modelo, guardados no cache do navegador para as próximas. A saída é sempre 44,1 kHz estéreo.</span>
-        <strong data-i18n="req">Requisitos</strong>: <span data-i18n="reqTxt">Computador com 4 GB de RAM livres ou mais. Chrome/Edge 113+ usam a placa de vídeo (WebGPU) e são os mais rápidos; Firefox e Safari usam a CPU e demoram mais. Celular não é recomendado. Músicas acima de 15 minutos podem esgotar a memória.</span></p>
+      <p><span data-i18n-html="comoHtml">O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a> (Demucs v4, Meta/FAIR, licença MIT) roda aqui mesmo, com o <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. A saída é sempre 44,1 kHz estéreo.</span></p>
+      <p><strong data-i18n="req">Requisitos</strong>: <span data-i18n="reqTxt">Funciona melhor no Chrome ou no Edge 113+, que usam a placa de vídeo (WebGPU). Firefox e Safari usam a CPU: é mais lento e chega a ~3 GB de memória. Na primeira visita são baixados ~90 MB do modelo (depois ficam em cache). Precisa de memória livre suficiente; celular não é recomendado e músicas acima de 15 minutos podem esgotá-la.</span></p>
+      <p><strong data-i18n="uso">Uso</strong>: <span data-i18n="usoTxt">O áudio não sai do seu computador. Envie apenas áudio que você tem direito de usar e processar. O modelo é o htdemucs (Demucs, Meta/FAIR, licença MIT); o resultado pode não ser perfeito.</span></p>
+    </details>
+
+    <details id="faq">
+      <summary><span class="icone"><svg class="ic"><use href="#i-chev"/></svg></span><span>Perguntas frequentes · FAQ</span></summary>
+      <div lang="pt-BR">
+        <p><strong>O que é um stem?</strong> É uma faixa isolada de uma música: voz, bateria, baixo ou os demais instrumentos.</p>
+        <p><strong>Como separar a voz de uma música?</strong> Envie o áudio (MP3, WAV, FLAC e outros) e o Sidra separa voz, bateria, baixo e outros em poucos minutos, direto no navegador.</p>
+        <p><strong>É grátis? Precisa de cadastro?</strong> É grátis e não pede cadastro. O áudio não sai do seu computador: não há servidor nem upload.</p>
+        <p><strong>Que modelo usa?</strong> O htdemucs (Demucs v4, Meta/FAIR, licença MIT), executado com ONNX Runtime Web.</p>
+        <p><strong>Posso baixar os stems?</strong> Sim, em WAV de 16 ou 24 bits, faixa por faixa ou todas num .zip.</p>
+      </div>
+      <div lang="en">
+        <p><strong>What is a stem?</strong> An isolated track from a song: vocals, drums, bass or the remaining instruments.</p>
+        <p><strong>How do I remove vocals or make an acapella?</strong> Upload your audio and Sidra splits it into vocals, drums, bass and other instruments in your browser.</p>
+        <p><strong>Is it free? Do I need an account?</strong> It is free with no sign-up. Your audio never leaves your device: there is no server and no upload.</p>
+        <p><strong>Which model does it use?</strong> htdemucs (Demucs v4, Meta/FAIR, MIT license), run with ONNX Runtime Web.</p>
+        <p><strong>Can I download the stems?</strong> Yes, as 16 or 24-bit WAV, one by one or all in a .zip.</p>
+      </div>
     </details>
   </main>
 
