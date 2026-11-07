@@ -11,6 +11,8 @@ Só entram os pesos do htdemucs: o BS-Roformer-SW e o DrumSep (licença de uso p
 | Arquivo | O que faz |
 |---|---|
 | `index.html`, `app.js` | interface: escolher ou arrastar o áudio, decodificar com Web Audio (`OfflineAudioContext` a 44,1 kHz, mono vira estéreo), barra de progresso por janela com tempo restante, player Web Audio sincronizado (mudo/solo/volume), download de WAV 16 ou 24 bits por stem ou todos num .zip, interface em PT/EN |
+| `ableton.js`, `ableton-modelo.js`, `zip.js` | exportação para o Ableton Live 12: um `.zip` com `<nome> Project/<nome>.als` (XML em gzip) e os WAVs da original e dos 4 stems, uma faixa cada. `ableton-modelo.js` é **gerado** por `ferramentas/montar-modelo-als.py` a partir de um set real do Live 12; não edite à mão |
+| `traktor.js` | exportação Traktor Stems (`.stem.mp4`): 5 faixas AAC (mix + Drums, Bass, Other, Vocals) e o JSON do formato no átomo `stem`. Codifica com WebCodecs (Chrome, Edge, Safari); onde não há AAC o botão fica desabilitado |
 | `trabalhador.js` | Web Worker (module). Baixa o modelo com cache, cria a sessão (WebGPU; se falhar, WASM) e separa janela a janela |
 | `dsp.js` | porte de `stems.py`: STFT/ISTFT CaC (hann, n_fft 4096, hop 1024, normalized, center, reflect), janelas de 343 980 amostras com sobreposição de 0,25, fusão triangular, normalização média/desvio do mix e `rescale` |
 | `coi-sw.js`, `_headers` | isolamento entre origens (COOP/COEP), que o WASM precisa para usar várias threads. O `_headers` vale no Cloudflare Pages; o service worker cobre o GitHub Pages, que não deixa configurar cabeçalho |

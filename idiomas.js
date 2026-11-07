@@ -28,6 +28,8 @@ export const TXT = {
     estados: { inicial: "Inicial", arquivo: "Arquivo", processando: "Processando", resultado: "Resultado", erro: "Erro" },
     mute: "Mudo", solo: "Solo", novo: "Novo arquivo", tentar: "Tentar de novo", opcoes: "Opções", opcoesCaps: "OPÇÕES", privacidade: "Nada sai do seu computador", stemsT: "stems",
     linha: { inicial: "AGUARDANDO ENTRADA", arquivo: "PRONTO · 3:42 · 44.1 kHz", processando: "SEPARANDO · JANELA 14/23", resultado: "PRONTO · 4 STEMS · 1:12", erro: "ERRO · DECODIFICAÇÃO" },
+    expWav: "WAV (.zip)", expTraktor: "Traktor Stems", expAbleton: "Ableton Live",
+    expWavAria: "Baixar os 4 WAVs em um .zip", expTraktorAria: "Baixar um arquivo .stem.mp4 para o Traktor", expAbletonAria: "Baixar um projeto do Ableton Live 12 com a faixa original e as 4 faixas separadas",
   },
   en: {
     titulo: "Sidra", sub1: "Vocals, drums, bass and other instruments, separated", sub2: "in your browser", sub3: ". Your audio never leaves your computer: no server, no upload.",
@@ -45,6 +47,8 @@ export const TXT = {
     estados: { inicial: "Initial", arquivo: "File", processando: "Processing", resultado: "Result", erro: "Error" },
     mute: "Mute", solo: "Solo", novo: "New file", tentar: "Try again", opcoes: "Options", opcoesCaps: "OPTIONS", privacidade: "Nothing leaves your computer", stemsT: "stems",
     linha: { inicial: "WAITING FOR INPUT", arquivo: "READY · 3:42 · 44.1 kHz", processando: "SEPARATING · WINDOW 14/23", resultado: "DONE · 4 STEMS · 1:12", erro: "ERROR · DECODING" },
+    expWav: "WAV (.zip)", expTraktor: "Traktor Stems", expAbleton: "Ableton Live",
+    expWavAria: "Download the 4 WAVs in a .zip", expTraktorAria: "Download a .stem.mp4 file for Traktor", expAbletonAria: "Download an Ableton Live 12 project with the original track and the 4 separated tracks",
   },
 };
 

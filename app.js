@@ -2,10 +2,13 @@
 // toca os 4 stems sincronizados (mudo/solo/volume) e baixa cada WAV ou todos num .zip.
 // A decodificacao, o Worker (trabalhador.js, dsp.js) e a escrita de WAV nao mudam: aqui e so a pagina.
 import { texto, idiomaAtual } from "./idiomas.js";
+import { gerarZip, crc32 } from "./zip.js";
+import { gerarProjetoAbleton } from "./ableton.js";
+import { gerarTraktorStem, suportaAac } from "./traktor.js";
 
 const ORDEM = ["vocals", "drums", "bass", "other"];
 const TAXA = 44100;
-const PICOS = 96;
+const PICOS = 128;
 const LARGURA = 384;                 // viewBox das ondas
 const params = new URLSearchParams(location.search);
 // onde estao manifesto.json e os pedacos do modelo; ?modelo=URL troca (ex.: Hugging Face)
@@ -24,13 +27,13 @@ const el = { zona: $("zona"), entrada: $("entrada"), nome: $("arquivo-nome"), me
   erro: $("painel-erro"), erroNome: $("erro-nome"), erroMeta: $("erro-meta"),
   toast: $("toast"), toastDetalhe: $("toast-detalhe"), toastFechar: $("toast-fechar"),
   resultado: $("painel-resultado"), resumo: $("resumo"), play: $("btn-play"), iconePlay: $("icone-play"), iconePause: $("icone-pause"),
-  tempo: $("tempo"), total: $("duracao-total"), baixarTodos: $("baixar-todos") };
+  tempo: $("tempo"), total: $("duracao-total"), baixarTodos: $("baixar-todos"), expTraktor: $("exp-traktor"), expAbleton: $("exp-ableton") };
 
 // textos dinamicos que o idiomas.js nao tem (o resto vem de texto(chave, idioma))
 const D = {
   pt: { mono: "mono", janela: (k, n) => `Janela ${k} de ${n}`, restantes: "restantes", baixando: "Baixando o modelo (só na primeira vez)",
     carregando: "Carregando o modelo", preparando: "Preparando o modelo no navegador", separandoCom: (b) => `Separando (${b})`,
-    pouco: "Pode levar alguns segundos.", gerandoWav: "Gerando os arquivos WAV…", mbDe: (a, b) => `${a} de ${b} MB`,
+    pouco: "Pode levar alguns segundos.", gerandoWav: "Gerando os arquivos WAV…", gerandoExp: "Gerando…", expFalhou: "Não consegui gerar o arquivo", semAac: "Este navegador não codifica AAC: use Chrome, Edge ou Safari para o Traktor Stems.", mbDe: (a, b) => `${a} de ${b} MB`,
     longo: (d) => `Áudio longo (${d}): pode faltar memória.`, abrir: (m) => `não consegui abrir este arquivo de áudio (${m})`,
     worker: (m) => `erro no worker: ${m}`, desconhecido: "desconhecido",
     resumo: (seg, be, thr, dur, por, pico) => `Separado em ${seg} (${be}${thr}) · ${dur} de áudio · ${por} s por minuto de áudio`
@@ -38,7 +41,7 @@ const D = {
     thread: (n) => `, ${n} thread${n > 1 ? "s" : ""}` },
   en: { mono: "mono", janela: (k, n) => `Window ${k} of ${n}`, restantes: "left", baixando: "Downloading the model (first time only)",
     carregando: "Loading the model", preparando: "Preparing the model in the browser", separandoCom: (b) => `Separating (${b})`,
-    pouco: "This may take a few seconds.", gerandoWav: "Generating the WAV files…", mbDe: (a, b) => `${a} of ${b} MB`,
+    pouco: "This may take a few seconds.", gerandoWav: "Generating the WAV files…", gerandoExp: "Generating…", expFalhou: "Could not generate the file", semAac: "This browser cannot encode AAC: use Chrome, Edge or Safari for Traktor Stems.", mbDe: (a, b) => `${a} of ${b} MB`,
     longo: (d) => `Long audio (${d}): may run out of memory.`, abrir: (m) => `couldn't open this audio file (${m})`,
     worker: (m) => `worker error: ${m}`, desconhecido: "unknown",
     resumo: (seg, be, thr, dur, por, pico) => `Separated in ${seg} (${be}${thr}) · ${dur} of audio · ${por} s per minute of audio`
@@ -110,23 +113,33 @@ const curto = (sel) => (sel.selectedOptions[0]?.textContent || "").replace(/\s*\
 function atualizarResumoOpcoes() { el.resumoOpcoes.textContent = `${curto(el.bits)} · ${curto(el.overlap)}`; }
 [el.bits, el.overlap].forEach((s) => s.addEventListener("change", atualizarResumoOpcoes));
 
-// ---------------------------------------------------------------- ondas (SVG de area, 96 picos)
-// pico de cada bloco = maior |amostra| entre os dois canais (sem normalizar: o que e baixo parece baixo)
-function picos(canaisL) {
+// ---------------------------------------------------------------- ondas (SVG de barras, 128 blocos)
+// Cada barra e o RMS do bloco (o pico de uma musica masterizada enche tudo). A escala e o percentil 95 dos blocos,
+// com curva suave: o refrão fica alto, a introducao e os silencios ficam baixos. `ref` fixa a escala (cartoes dos stems
+// usam a mesma, para o stem fraco parecer fraco).
+function energia(canaisL) {
   const n = canaisL[0].length, out = new Float32Array(PICOS);
   for (let i = 0; i < PICOS; i++) {
     const a = Math.floor((i * n) / PICOS), b = Math.max(a + 1, Math.floor(((i + 1) * n) / PICOS));
-    let m = 0;
-    for (const c of canaisL) for (let j = a; j < b && j < n; j++) { const v = c[j] < 0 ? -c[j] : c[j]; if (v > m) m = v; }
-    out[i] = Math.min(1, m);
+    let soma = 0, k = 0;
+    for (const c of canaisL) for (let j = a; j < b && j < n; j++) { soma += c[j] * c[j]; k++; }
+    out[i] = Math.sqrt(soma / Math.max(1, k));
   }
   return out;
 }
+function percentil95(v) { const o = Array.from(v).sort((x, y) => x - y); return o[Math.min(o.length - 1, Math.floor(o.length * 0.95))] || 1e-6; }
+function picos(canaisL, ref) {
+  const e = energia(canaisL), r = ref || percentil95(e);
+  return e.map((v) => Math.min(1, Math.pow(v / r, 0.7)));
+}
 function caminho(p) {
-  let cima = "M0,50", baixo = "";
-  for (let i = 0; i < p.length; i++) cima += ` L${i * 4},${(50 - p[i] * 44).toFixed(1)}`;
-  for (let i = p.length - 1; i >= 0; i--) baixo += ` L${i * 4},${(50 + p[i] * 44).toFixed(1)}`;
-  return `${cima}${baixo} Z`;
+  const passo = LARGURA / p.length, larg = passo * 0.62;
+  let d = "";
+  for (let i = 0; i < p.length; i++) {
+    const h = Math.max(1.5, p[i] * 44) * 2, x = (i * passo + (passo - larg) / 2).toFixed(2);
+    d += `M${x},${(50 - h / 2).toFixed(1)}h${larg.toFixed(2)}v${h.toFixed(1)}h-${larg.toFixed(2)}Z`;
+  }
+  return d;
 }
 function desenharOnda(svg, p, prog) {
   const d = caminho(p);
@@ -238,6 +251,11 @@ function novoTrabalhador() {
   return w;
 }
 
+// Conta quantas separacoes terminaram: um POST vazio, sem nome, duracao nem qualquer dado da musica (so no site publicado)
+function contarSeparacao() {
+  try { if (location.hostname === "sidrastems.com") navigator.sendBeacon("/api/separou"); } catch {}
+}
+
 function tratar(m) {
   if (m.tipo === "progresso") {
     if (m.etapa === "separar" && m.feito === 0) inicioJanelas = performance.now();
@@ -247,6 +265,7 @@ function tratar(m) {
     el.avisos.textContent += m.texto + "\n";
   } else if (m.tipo === "separado") {
     separadoAtual = m;
+    contarSeparacao();
     progressoAtual = { etapa: "wav" };
     renderProgresso();
     trabalhador.postMessage({ tipo: "brutos" });   // copia em float32 para as ondas e o player
@@ -301,11 +320,12 @@ function mostrar(lista, bits) {
 
 function prepararStems() {
   buffers = {};
+  const ref = Math.max(...brutos.map((x) => percentil95(energia([x.esq, x.dir]))));
   for (const x of brutos) {
     const b = new AudioBuffer({ length: x.esq.length, numberOfChannels: 2, sampleRate: TAXA });
     b.copyToChannel(x.esq, 0); b.copyToChannel(x.dir, 1);
     buffers[x.nome] = b;
-    desenharOnda(cartao(x.nome).querySelector(".onda"), picos([x.esq, x.dir]), 0);
+    desenharOnda(cartao(x.nome).querySelector(".onda"), picos([x.esq, x.dir], ref), 0);
   }
   ondasProntas = true;
   for (const n of ORDEM) { estado[n] = { mudo: false, solo: false, volume: 100 }; cartao(n).querySelector(".volume").value = 100; }
@@ -333,47 +353,6 @@ el.bits.addEventListener("change", () => {
   }
 });
 
-// ---------------------------------------------------------------- zip (store, sem compressao)
-const TABELA_CRC = (() => {
-  const t = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
-  return t;
-})();
-function crc32(u8) {
-  let c = 0xffffffff;
-  for (let i = 0; i < u8.length; i++) c = TABELA_CRC[(c ^ u8[i]) & 0xff] ^ (c >>> 8);
-  return (c ^ 0xffffffff) >>> 0;
-}
-/** itens: [{ nome, dados: ArrayBuffer|Uint8Array }] -> Blob .zip (metodo 0 = armazenado). */
-function gerarZip(itens) {
-  const enc = new TextEncoder(), agora = new Date();
-  const hora = (agora.getHours() << 11) | (agora.getMinutes() << 5) | (agora.getSeconds() >> 1);
-  const data = ((agora.getFullYear() - 1980) << 9) | ((agora.getMonth() + 1) << 5) | agora.getDate();
-  const partes = [], central = [];
-  let pos = 0, tamCentral = 0;
-  for (const it of itens) {
-    const nome = enc.encode(it.nome), dados = it.dados instanceof Uint8Array ? it.dados : new Uint8Array(it.dados);
-    const crc = crc32(dados);
-    const loc = new DataView(new ArrayBuffer(30));
-    loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);   // 0x0800: nomes em UTF-8
-    loc.setUint16(10, hora, true); loc.setUint16(12, data, true);
-    loc.setUint32(14, crc, true); loc.setUint32(18, dados.length, true); loc.setUint32(22, dados.length, true);
-    loc.setUint16(26, nome.length, true);
-    const cen = new DataView(new ArrayBuffer(46));
-    cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
-    cen.setUint16(12, hora, true); cen.setUint16(14, data, true);
-    cen.setUint32(16, crc, true); cen.setUint32(20, dados.length, true); cen.setUint32(24, dados.length, true);
-    cen.setUint16(28, nome.length, true); cen.setUint32(42, pos, true);
-    partes.push(loc.buffer, nome, dados);
-    central.push(cen.buffer, nome);
-    pos += 30 + nome.length + dados.length;
-    tamCentral += 46 + nome.length;
-  }
-  const fim = new DataView(new ArrayBuffer(22));
-  fim.setUint32(0, 0x06054b50, true); fim.setUint16(8, itens.length, true); fim.setUint16(10, itens.length, true);
-  fim.setUint32(12, tamCentral, true); fim.setUint32(16, pos, true);
-  return new Blob([...partes, ...central, fim.buffer], { type: "application/zip" });
-}
 el.baixarTodos.addEventListener("click", () => {
   if (!wavs) return;
   const base = baseNome();
@@ -381,6 +360,56 @@ el.baixarTodos.addEventListener("click", () => {
   baixarUrl(url, `${base}_stems.zip`);
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 });
+
+
+// ---------------------------------------------------------------- Traktor Stems e Ableton Live
+let aacOk = false;
+suportaAac(TAXA).then((ok) => { aacOk = ok; if (!ok) { el.expTraktor.disabled = true; el.expTraktor.title = L().semAac; } });
+
+/** O original nao fica em memoria depois da separacao: decodifica de novo do arquivo escolhido. */
+async function originalDecodificado() {
+  if (dec) return dec;
+  if (!arquivo?.arrayBuffer) throw new Error("original indisponivel");
+  return decodificar(arquivo);
+}
+const bruto = (n) => brutos.find((x) => x.nome === n);
+
+async function exportar(botao, fazer) {
+  if (!wavs || !brutos || botao.getAttribute("aria-busy") === "true") return;
+  botao.setAttribute("aria-busy", "true");
+  const rotulo = botao.querySelector("[data-i18n]"), antes = rotulo.textContent;
+  rotulo.textContent = L().gerandoExp;
+  try { await fazer((p) => { rotulo.textContent = `${L().gerandoExp} ${Math.round(p * 100)}%`; }); }
+  catch (e) {
+    console.error(e);
+    botao.title = `${L().expFalhou}: ${e.message || e}`;
+    rotulo.textContent = L().expFalhou;
+    await new Promise((r) => setTimeout(r, 3500));
+  }
+  finally { botao.removeAttribute("aria-busy"); rotulo.textContent = antes; }
+}
+function baixarBlob(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  baixarUrl(url, nome);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+el.expAbleton.addEventListener("click", () => exportar(el.expAbleton, async () => {
+  const base = baseNome(), o = await originalDecodificado();
+  const dsp = await import("./dsp.js");
+  const orig = dsp.codificarWav(o.esq, o.dir, TAXA, wavs.bits);
+  const stems = ORDEM.map((n) => ({ chave: n, nome: n[0].toUpperCase() + n.slice(1), wav: wavs.porNome[n] }));
+  const blob = await gerarProjetoAbleton({ base, original: orig, stems, taxa: TAXA, amostras: o.esq.length });
+  baixarBlob(blob, `${base} Project.zip`);
+}));
+
+el.expTraktor.addEventListener("click", () => exportar(el.expTraktor, async (prog) => {
+  if (!aacOk) throw new Error(L().semAac);
+  const base = baseNome(), o = await originalDecodificado();
+  const entradas = { mix: { esq: o.esq, dir: o.dir } };
+  for (const n of ["drums", "bass", "other", "vocals"]) entradas[n] = bruto(n);
+  baixarBlob(await gerarTraktorStem(entradas, TAXA, prog), `${base}.stem.mp4`);
+}));
 
 // ---------------------------------------------------------------- player (Web Audio)
 let ctx = null;
@@ -558,10 +587,10 @@ if (params.has("teste")) {
     ganhos: () => Object.fromEntries(ORDEM.map((n) => [n, ganhoEfetivo(n)])),
     posicao, gerarZip, crc32,
     // injeta stems sinteticos como se viessem do Worker (ondas, player, mute/solo, zip, sem rodar o modelo)
-    async simular(lista, bits = 24) {
+    async simular(lista, bits = 24, original = null) {
       const dsp = await import("./dsp.js");
       brutos = lista; ondasProntas = false; duracao = lista[0].esq.length / TAXA;
-      arquivo = arquivo || { name: "sintetico.wav", size: 1 };
+      arquivo = original || arquivo || { name: "sintetico.wav", size: 1 };
       separadoAtual = { segundos: 12, backend: "wasm", threads: 2, pico: 1 };
       mostrar(lista.map((x) => ({ nome: x.nome, wav: dsp.codificarWav(x.esq, x.dir, dsp.TAXA, bits) })), bits);
     },
