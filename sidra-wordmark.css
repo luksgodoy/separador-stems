@@ -1,0 +1,29 @@
+/* Sidra — wordmark "quatro cortes" (proposta 2b). Fonte: Reem Kufi 600 (Google Fonts).
+   Uso:
+   <span class="sidra-wordmark"><span class="g">SIDRA</span><i>SIDRA</i><i>SIDRA</i><i>SIDRA</i><i>SIDRA</i></span>
+   Tamanho = font-size (tudo em em). Cor = color. Abaixo de 20px use .sidra-wordmark--solid. */
+@font-face{font-family:'Reem Kufi';font-style:normal;font-weight:600;font-display:swap;src:url(fontes/reem-kufi-600-latin.woff) format('woff')}
+.sidra-wordmark{position:relative;display:inline-block;font:600 1em/1 'Reem Kufi',sans-serif;letter-spacing:.08em;color:oklch(0.80 0.12 290);white-space:nowrap}
+.sidra-wordmark .g{visibility:hidden}
+.sidra-wordmark i{position:absolute;inset:0;font-style:normal}
+.sidra-wordmark i:nth-of-type(1){clip-path:inset(0 0 76% 0);transform:translateX(-.095em)}
+.sidra-wordmark i:nth-of-type(2){clip-path:inset(26% 0 51% 0);transform:translateX(.048em);opacity:.85}
+.sidra-wordmark i:nth-of-type(3){clip-path:inset(51% 0 26% 0);transform:translateX(-.036em);opacity:.7}
+.sidra-wordmark i:nth-of-type(4){clip-path:inset(76% 0 0 0);transform:translateX(.095em);opacity:.55}
+.sidra-wordmark--ink{color:#0C2A25}
+.sidra-wordmark--solid .g{visibility:visible}
+.sidra-wordmark--solid i{display:none}
+/* Ícone: só o "S", mesmos cortes, deslocamentos menores */
+.sidra-icon{position:relative;display:inline-block;font:600 1em/1 'Reem Kufi',sans-serif;color:oklch(0.80 0.12 290)}
+.sidra-icon .g{visibility:hidden}
+.sidra-icon i{position:absolute;inset:0;font-style:normal}
+.sidra-icon i:nth-of-type(1){clip-path:inset(0 0 76% 0);transform:translateX(-.08em)}
+.sidra-icon i:nth-of-type(2){clip-path:inset(26% 0 51% 0);transform:translateX(.04em);opacity:.85}
+.sidra-icon i:nth-of-type(3){clip-path:inset(51% 0 26% 0);transform:translateX(-.03em);opacity:.7}
+.sidra-icon i:nth-of-type(4){clip-path:inset(76% 0 0 0);transform:translateX(.08em);opacity:.55}
+
+/* Interação (Sidra web): ao passar o mouse as quatro camadas se juntam; ao sair, separam de novo. */
+.sidra-wordmark i{transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s ease}
+.marca{cursor:default}
+.marca:hover .sidra-wordmark i,.sidra-wordmark:hover i,.marca:focus-within .sidra-wordmark i{transform:translateX(0);opacity:1}
+@media (prefers-reduced-motion:reduce){.sidra-wordmark i{transition:none}}

@@ -489,6 +489,22 @@ function parar(zerar) {
   iconePlay();
   atualizarTempo();
 }
+/** Pula para `seg`: tocando, recomeca as fontes no ponto com as mesmas faixas ligadas; parado, so move a posicao. */
+function irPara(seg) {
+  if (!buffers || !duracao) return;
+  seg = Math.max(0, Math.min(duracao - 0.01, seg));
+  if (tocando) { const ligadas = [...ativas]; parar(false); deslocamento = seg; tocar(ligadas); }
+  else { deslocamento = seg; atualizarTempo(); }
+}
+// clicar na onda de qualquer stem leva as 4 faixas ao ponto clicado (o relogio e um so)
+for (const n of ORDEM) {
+  const onda = cartao(n).querySelector(".onda");
+  onda.style.cursor = "pointer";
+  onda.addEventListener("click", (e) => {
+    const r = onda.getBoundingClientRect();
+    if (r.width) irPara(((e.clientX - r.left) / r.width) * duracao);
+  });
+}
 // topo: tocando (qualquer faixa) -> pausa tudo; parado -> liga as 4
 el.play.addEventListener("click", () => (tocando ? pausar() : tocar()));
 // cartao: liga/desliga so aquela faixa; ao desligar a ultima, pausa (posicao congelada)
