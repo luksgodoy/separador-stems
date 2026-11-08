@@ -22,6 +22,8 @@
 4. **Testes que faltam:** Safari, Firefox, WebGPU em outras placas, arrastar e soltar real, áudio >15 min (alerta), som audível, layout em 768 px, resultado com stems reais do modelo, Solo combinado com play por cartão, `teste/navegador.mjs` (separação real) depois das mudanças de Tipo e backend automático.
 5. **Modelo no Hugging Face**, só se a divulgação crescer: o GitHub Pages dá cerca de 100 GB/mês, ou ~1.000 visitantes novos (90 MB cada). Procedimento no `LEIAME.md` (`?modelo=`). Lucas decidiu (06/11/2026) manter no GitHub por enquanto.
 
+0f. **Token novo do Cloudflare para a skill `sidra-acessos`.** O token usado em 08/11/2026 foi colado no chat: o Lucas precisa revogá-lo e criar outro (Zone → Analytics → Read, só `sidrastems.com`, validade curta), guardando no Keychain: `security add-generic-password -a "$USER" -s sidra-cf-analytics -w`, no terminal dele. Sem isso a skill para em `SEM TOKEN`.
+
 ## Deliberadamente não construído
 - Mosaico girih animado (rotação e escala das camadas): feito e aprovado em teste, mas o Lucas pediu para publicar **estático** (07/11/2026). A versão animada é trocar as duas linhas `transform` de `.mosaico::before/::after` por `animation` com `@keyframes` de `translate/rotate/scale`.
 - Iframe do Wix: recusado em favor de subdomínio + botão (escolha do Lucas em 06/11/2026), pelo risco de quebrar COOP/COEP e WebGPU.
@@ -29,6 +31,7 @@
 - Modelos BS-Roformer-SW e DrumSep: licença de uso pessoal, não podem entrar (ver `LEIAME.md`).
 
 ## Corrigido, mantido para o registro
+- 08/11/2026 · Criada a skill `~/.claude/skills/sidra-acessos` (`SKILL.md` + `acessos.py`): consulta só leitura do GraphQL do Cloudflare e separa gente (beacon `/cdn-cgi/rum`) de bot (UA Unknown, Googlebot, headless, curl, scanners 404); cruza com o KV `CONTAGEM`. Vive fora do repositório, em `~/.claude/skills`.
 - 07/11/2026 · Publicado em sidrastems.com (versão `4ff48e7a`): logos oficiais do Traktor (`logo-traktor.png`) e do Ableton (`logo-ableton.svg`) nos botões de exportação, clique na waveform leva todos os canais ao ponto (`irPara` em `app.js`), e-mail de contato e FAQ com efeito de camadas no hover, textos do FAQ resumidos.
 - 07/11/2026 · Live recusava o `.als` por "Slot count mismatch": `FreezeSequencer/ClipSlotList` também precisa ter 1 slot por cena; corrigido em `ferramentas/montar-modelo-als.py`.
 - 07/11/2026 · Waveform enchia tudo (pico absoluto): agora barras de RMS com escala no percentil 95; stems usam escala comum.
@@ -37,6 +40,7 @@
 - 06/11/2026 · Playhead SVG nunca aparecia (`hidden` não é propriedade de SVG); corrigido com `toggleAttribute("hidden")` no `a7e5e78`.
 
 ## Validado
+- 2026-11-08 · Primeira leitura dos acessos (07 a 08/11): 1.131 req e 190 únicos em 07/11 contra 174 req e 21 únicos em 08/11; só 82 beacons de navegador real (EUA 37, BR 27, FR 16, CA 2), 297 req da Holanda quase todas sem User-Agent, 47 Googlebot, scanners de `/.env` e `/.npmrc` (404, inofensivos); 3 separações no KV (1 em 07/11 e 2 em 08/11) — fonte: `~/.claude/skills/sidra-acessos/acessos.py`. O plano gratuito não dá pontuação de bot nem ASN.
 - 2026-11-07 · Clique na waveform movendo todos os canais testado pelo Lucas no servidor local (tocando e parado); logos conferidos em screenshot 390 px; deploy verificado por curl (HTML referencia `logo-traktor`, SVG responde 200) — fonte: `app.js` (`irPara`), `~/sidra-publicar`
 - 2026-11-07 · `.stem.mp4` gerado por `traktor.js` passa no ffprobe e decodifica no ffmpeg (5 faixas AAC, JSON no átomo `stem`); contador `/api/separou` responde 204 e não é exposto (GET 405) — fonte: `traktor.js`, `~/sidra-publicar/worker.js`
 - 2026-11-06 · Fluxo real com o htdemucs (backend wasm, áudio de 5 s e 60 s: 9 janelas, ~26 s por minuto de áudio) chega ao resultado; cancelar, erro, troca de idioma e troca de bits regeneram corretamente — fonte: commit `a7e5e78`
