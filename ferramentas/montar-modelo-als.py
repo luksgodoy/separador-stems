@@ -120,7 +120,7 @@ s_clipe = re.sub(r'<RightTime Value="[^"]*" />', '<RightTime Value="__BEATS__" /
 s_clipe = re.sub(r'<LoopOn Value="[^"]*" />', '<LoopOn Value="false" />', s_clipe)
 s_clipe = re.sub(r'<IsWarped Value="[^"]*" />', '<IsWarped Value="false" />', s_clipe)
 s_clipe = re.sub(r'<SamplesToAutoWarp Value="[^"]*" />', '<SamplesToAutoWarp Value="0" />', s_clipe)
-s_clipe = re.sub(r'<RelativePathType Value="\d+" />', '<RelativePathType Value="3" />', s_clipe)
+s_clipe = re.sub(r'<RelativePathType Value="\d+" />', '<RelativePathType Value="1" />', s_clipe)  # 1 = relativo ao .als (o que o Live 12.4 grava); o tipo 3 nao resolve no zip do Sidra
 s_clipe = re.sub(r'<RelativePath Value="[^"]*" />', '<RelativePath Value="__CAMINHO__" />', s_clipe)
 s_clipe = re.sub(r'<Path Value="[^"]*" />', '<Path Value="__CAMINHO__" />', s_clipe)
 s_clipe = re.sub(r'<OriginalFileSize Value="[^"]*" />', '<OriginalFileSize Value="__BYTES__" />', s_clipe)
