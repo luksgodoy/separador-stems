@@ -20,7 +20,7 @@
 
 ## Corrigido, mantido para o registro
 - 09/11/2026 · Modo celular retirado a pedido do Lucas: `trabalhador.js` sem `CELULAR_REAL`/`?curto` (WebGPU, otimização "all" e até 8 threads para todos), `app.js` sem o parâmetro `curto`, `modelo/curto/` (83 MB) removido da produção. O aviso "celular não é recomendado" continua. `teste/interface.mjs` passa inteiro.
-- 09/11/2026 · Publicado em sidrastems.com (versao `2878c5a6`): FAQ so no idioma ativo (`975c9dd`), arrastar na waveform (`4df5526`) e Analytics Engine `SEPARACOES` (dataset `sidra_separacoes`, ativado na conta). `docs/` fora dos assets publicos (`.assetsignore` em `~/sidra-publicar`; `/docs/pendencias.md` agora responde 404). Falta ver o dataset receber a primeira separacao.
+- 09/11/2026 · Publicado em sidrastems.com (versao `2878c5a6`): FAQ so no idioma ativo (`975c9dd`), arrastar na waveform (`4df5526`) e Analytics Engine `SEPARACOES` (dataset `sidra_separacoes`, ativado na conta). `docs/` fora dos assets publicos (`.assetsignore` em `~/sidra-publicar`; `/docs/pendencias.md` agora responde 404). O dataset recebeu as separações em seguida (ver Validado).
 - 09/11/2026 · FAQ e rótulo de contato só no idioma ativo: CSS `html[lang=…] [lang=…] { display: none }`, os dois idiomas seguem no HTML estático (SEO intacto, JSON-LD não mudou): `975c9dd`.
 - 09/11/2026 · Arrastar na waveform move o playhead de todos os canais (pointer events, mouse e toque; tocando, recomeça uma vez ao soltar; clique simples e play por cartão intactos): `4df5526`, 5 checagens novas em `teste/interface.mjs`.
 - 09/11/2026 · Contador no Analytics Engine: binding `SEPARACOES` (dataset `sidra_separacoes`) em `~/sidra-publicar/wrangler.jsonc`, 1 ponto por separação em `worker.js` (blob1 = `request.cf.country`, blob2 = dia, sem IP; KV `CONTAGEM` mantido; falha do dataset não derruba a contagem). `wrangler deploy --dry-run` valida os bindings; **não publicado**. O `worker.js` não vive neste repositório (só em `~/sidra-publicar`).
@@ -40,6 +40,7 @@
 - 06/11/2026 · Playhead SVG nunca aparecia (`hidden` não é propriedade de SVG); corrigido com `toggleAttribute("hidden")` no `a7e5e78`.
 
 ## Validado
+- 2026-11-09 · Separação real em sidrastems.com depois da retirada do modo celular (versão `429d5b40`): KV `dia:2026-11-09` foi de 2 para 3 e o Analytics Engine `sidra_separacoes` de 1 para 2 (BR, sem IP); visitas apareceram no painel do Web Analytics — fonte: teste do Lucas, consulta SQL da conta e `wrangler kv`.
 - 2026-11-09 · Testes em outros navegadores, arrastar e soltar real, áudio longo, som audível, stems reais do modelo, Solo com play por cartão: Lucas considerou testado e fechado (antigo item 4); o teste do `?curto` no celular foi descartado — fonte: decisão do Lucas.
 - 2026-11-09 · `node teste/interface.mjs` passa inteiro com as 5 checagens novas de arrasto (parado, em outra faixa, clique simples, tocando mantendo só a bateria, toque); FAQ mostra só `pt-BR` (390 px) ou só `en` (768 px), sem rolagem horizontal — fonte: `teste/interface.mjs`, screenshots do puppeteer.
 - 2026-11-09 · Export do Ableton aberto no Live 12.4.25b1 com as 5 faixas (o Lucas testou no servidor local, depois do molde novo) e `.stem.mp4` ok no Traktor — fonte: teste do Lucas, `a6eac3b`.
