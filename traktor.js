@@ -87,7 +87,7 @@ function esds(idFaixa, asc, bitrate) {
 
 function trak(idFaixa, f, taxa, deslocamento, duracaoMs) {
   const n = f.amostras.length;
-  const mp4a = caixa("mp4a", zeros(6), u16(1), zeros(8), u16(2), u16(16), u16(0), u16(0), u32(taxa * 65536), esds(idFaixa, f.asc, BITRATE_AAC));
+  const mp4a = caixa("mp4a", zeros(6), u16(1), zeros(8), u16(2), u16(16), u16(0), u16(0), u32(Math.min(taxa, 65535) * 65536), esds(idFaixa, f.asc, BITRATE_AAC));
   const stbl = caixa("stbl",
     cheia("stsd", 0, 0, u32(1), mp4a),
     cheia("stts", 0, 0, u32(1), u32(n), u32(QUADRO)),

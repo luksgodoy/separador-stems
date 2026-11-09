@@ -8,6 +8,11 @@
 - Produção é o Worker em `~/sidra-publicar` (`npx wrangler deploy`, nome `sidra-stems`): publicar = copiar os arquivos para lá; o repositório do Sidra não é o que está no ar.
 
 ## Backlog aberto
+- [decisão] Queda WebGPU→WASM só vale na criação da sessão: se o `run` falhar (device lost, limite de buffer), "Tentar de novo" repete o WebGPU. Corrigir refazendo em WASM quando a 1ª janela falhar — `trabalhador.js:101-129`.
+- [decisão] Pico de memória em `wavs()`: stems + 4 WAVs vivos ao mesmo tempo (~2,2 GB numa música de 15 min em 24 bits). Codificar um stem por vez — `trabalhador.js:148-152`.
+- [decisão] `/api/separou` sem limite de taxa nem checagem de Origin (regra de rate limiting no WAF e `Origin` ≠ `https://sidrastems.com`) — `~/sidra-publicar/worker.js`.
+- [decisão] CSP e ORT hospedado localmente (hoje `import()` do jsDelivr em versão fixa, sem SRI); `/modelo/*` com cache imutável sem hash no nome (`manifesto.json` precisa de `no-cache`); manifesto sem `r.ok` e sem uso do cache offline — `_headers`, `trabalhador.js:45`.
+- [decisão] Waveform sem controle por teclado/leitor de tela (`app.js:516-542`); contador só conta em `sidrastems.com` (`app.js:257`, confirmar que o `www` redireciona); WAV 16 bits sem dither; `.stem.mp4` sem edit list do atraso do AAC.
 
 ## Deliberadamente não construído
 - Mosaico girih animado (rotação e escala das camadas): feito e aprovado em teste, mas o Lucas pediu para publicar **estático** (07/11/2026). A versão animada é trocar as duas linhas `transform` de `.mosaico::before/::after` por `animation` com `@keyframes` de `translate/rotate/scale`.
@@ -19,6 +24,7 @@
 - Modelo `modelo/curto/` (83 MB) no repositório (antigo item 4b): decidido, o repositório é só código-fonte; modelo e `curto` vivem só em `~/sidra-publicar` (decisão do Lucas, 09/11/2026).
 
 ## Corrigido, mantido para o registro
+- 09/11/2026 · Code review (3 revisores, só leitura, sobre o que está em sidrastems.com) e correções seguras: corrida entre trocar os bits e "Novo arquivo" em `regerarWavs`; `onmessage`/`onerror` ignoram worker cancelado; zip dos WAVs usa `nomeSeguro`; `gerarZip` lança erro acima de 4 GB (sem zip64); `nomeSeguro` não parte emoji e remove controles C1; taxa limitada a 16 bits no `traktor.js`; `try/catch` no `put` do KV do `worker.js` (o dataset grava mesmo se o KV recusar); `nosniff` e `Referrer-Policy` no `_headers`; `teste/unidades.mjs` novo (janelas, WAV 16/24, reescalar, zip, nomeSeguro; `node teste/unidades.mjs`). As decisões ficaram no Backlog.
 - 09/11/2026 · Modo celular retirado a pedido do Lucas: `trabalhador.js` sem `CELULAR_REAL`/`?curto` (WebGPU, otimização "all" e até 8 threads para todos), `app.js` sem o parâmetro `curto`, `modelo/curto/` (83 MB) removido da produção. O aviso "celular não é recomendado" continua. `teste/interface.mjs` passa inteiro.
 - 09/11/2026 · Publicado em sidrastems.com (versao `2878c5a6`): FAQ so no idioma ativo (`975c9dd`), arrastar na waveform (`4df5526`) e Analytics Engine `SEPARACOES` (dataset `sidra_separacoes`, ativado na conta). `docs/` fora dos assets publicos (`.assetsignore` em `~/sidra-publicar`; `/docs/pendencias.md` agora responde 404). O dataset recebeu as separações em seguida (ver Validado).
 - 09/11/2026 · FAQ e rótulo de contato só no idioma ativo: CSS `html[lang=…] [lang=…] { display: none }`, os dois idiomas seguem no HTML estático (SEO intacto, JSON-LD não mudou): `975c9dd`.

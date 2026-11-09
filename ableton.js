@@ -12,7 +12,7 @@ const BASE_FAIXA = 20;           // ids de faixa
 export const CORES = { original: 0, vocals: 25, drums: 13, bass: 8, other: 17 };
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-export const nomeSeguro = (s) => (String(s).replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").replace(/^\.+/, "").trim() || "Sidra").slice(0, 120);
+export const nomeSeguro = (s) => (Array.from(String(s).replace(/[\\/:*?"<>|\u0000-\u001f\u007f-\u009f\ufffe\uffff]/g, "_").replace(/^\.+/, "").trim() || "Sidra").slice(0, 120).join(""));
 
 function preencher(s, mapa) {
   return s.replace(/__([A-Z0-9]+)__/g, (m, k) => {

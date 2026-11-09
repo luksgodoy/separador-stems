@@ -34,6 +34,7 @@ export function gerarZip(itens) {
     pos += 30 + nome.length + dados.length;
     tamCentral += 46 + nome.length;
   }
+  if (pos > 0xffffffff || tamCentral > 0xffffffff || itens.length > 0xffff) throw new Error("zip grande demais (acima de 4 GB): o formato sem zip64 nao comporta");
   const fim = new DataView(new ArrayBuffer(22));
   fim.setUint32(0, 0x06054b50, true); fim.setUint16(8, itens.length, true); fim.setUint16(10, itens.length, true);
   fim.setUint32(12, tamCentral, true); fim.setUint32(16, pos, true);

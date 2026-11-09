@@ -3,7 +3,7 @@
 // A decodificacao, o Worker (trabalhador.js, dsp.js) e a escrita de WAV nao mudam: aqui e so a pagina.
 import { texto, idiomaAtual } from "./idiomas.js";
 import { gerarZip, crc32 } from "./zip.js";
-import { gerarProjetoAbleton } from "./ableton.js";
+import { gerarProjetoAbleton, nomeSeguro } from "./ableton.js";
 import { gerarTraktorStem, suportaAac } from "./traktor.js";
 
 const ORDEM = ["vocals", "drums", "bass", "other"];
@@ -247,8 +247,8 @@ async function decodificar(f) {
 // ---------------------------------------------------------------- worker
 function novoTrabalhador() {
   const w = new Worker(new URL("trabalhador.js", import.meta.url), { type: "module" });
-  w.onmessage = (ev) => tratar(ev.data);
-  w.onerror = (ev) => falharCru(L().worker(ev.message || L().desconhecido));
+  w.onmessage = (ev) => { if (w === trabalhador) tratar(ev.data); };   // worker cancelado: ignora mensagem que ja estava na fila
+  w.onerror = (ev) => w === trabalhador && falharCru(L().worker(ev.message || L().desconhecido));
   return w;
 }
 
@@ -358,18 +358,20 @@ el.bits.addEventListener("change", () => {
 });
 // os stems ja estao na pagina (o worker os soltou): recodifica aqui mesmo
 async function regerarWavs(bits) {
+  const minha = rodada;   // "Novo arquivo" ou outro arquivo no meio da recodificacao invalida esta rodada
   try {
     const dsp = await import("./dsp.js");
     const lista = [];
-    for (const x of brutos) { lista.push({ nome: x.nome, wav: dsp.codificarWav(x.esq, x.dir, TAXA, bits) }); await new Promise((r) => setTimeout(r)); }
+    for (const x of brutos) { lista.push({ nome: x.nome, wav: dsp.codificarWav(x.esq, x.dir, TAXA, bits) }); await new Promise((r) => setTimeout(r)); if (minha !== rodada) return; }
+    if (minha !== rodada) return;
     mostrar(lista, bits);
-  } catch (e) { falharCru(String((e && e.message) || e)); return; }
+  } catch (e) { if (minha !== rodada) return; falharCru(String((e && e.message) || e)); return; }
   terminarOcupado();
 }
 
 el.baixarTodos.addEventListener("click", () => {
   if (!wavs) return;
-  const base = baseNome();
+  const base = nomeSeguro(baseNome());
   const url = URL.createObjectURL(gerarZip(ORDEM.map((n) => ({ nome: `${base}_${n}.wav`, dados: wavs.porNome[n] }))));
   baixarUrl(url, `${base}_stems.zip`);
   setTimeout(() => URL.revokeObjectURL(url), 60000);
