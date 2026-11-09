@@ -288,6 +288,8 @@
   #toast-fechar { width: 24px; height: 24px; border: 0; background: transparent; color: var(--erro-texto); cursor: pointer; padding: 0; display: inline-flex; }
   #toast-fechar .icone { width: 16px; height: 16px; margin: auto; }
 
+  /* só o idioma ativo aparece; o outro continua no HTML (SEO), apenas escondido; <html lang> é trocado por idiomas.js */
+  html[lang="pt-BR"] [lang="en"], html[lang="en"] [lang="pt-BR"] { display: none; }
   /* ---- FAQ (com "Como funciona" dentro) ---- */
   #faq { margin-top: auto; color: var(--suave); font-size: 12.5px; }
   #faq > summary { cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 30px; font-weight: 600; line-height: 1.2; }
@@ -569,7 +571,7 @@
       </div>
     </details>
     <footer class="contato">
-      <span class="rotulo cortes-host grad"><span class="base"><span lang="pt-BR">Contato</span> · <span lang="en">Contact</span></span></span>
+      <span class="rotulo cortes-host grad"><span class="base"><span lang="pt-BR">Contato</span><span lang="en">Contact</span></span></span>
       <span id="email-contato"><noscript>contact [arroba] sidrastems.com</noscript></span>
       <script>(function(){var e=["contact","sidrastems.com"].join("@"),a=document.createElement("a");a.className="email";a.href="mailto:"+e;a.textContent=e;document.getElementById("email-contato").appendChild(a);
 document.querySelectorAll(".cortes-host").forEach(function(h){var b=h.querySelector(":scope > .base");if(!b||h.querySelector(":scope > .cortes"))return;for(var i=0;i<4;i++){var c=document.createElement("i");c.className="cortes";c.setAttribute("aria-hidden","true");c.innerHTML=b.innerHTML;h.appendChild(c)}})})()</script>
