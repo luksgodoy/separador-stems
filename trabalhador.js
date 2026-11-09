@@ -7,15 +7,11 @@ const ORT_VERSAO = "1.30.0";
 const ORT_URL = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSAO}/dist/`;
 const CACHE = "separador-stems-modelo";
 
-// iPhone/iPad/Android (inclusive Chrome no iOS, que e WebKit): o sistema mata a aba que passa de ~1 GB
-const CELULAR_REAL = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform || ""));
-
-let CELULAR = CELULAR_REAL;   // ?curto liga o mesmo modo no desktop (teste)
 let ort = null;
 let sessao = null;
 let backend = null;
 let stems = null;        // [[esq, dir] x 4] Float32Array, depois da separacao
-let segmento = dsp.SEGMENTO;   // amostras por janela do modelo carregado (o do celular e mais curto)
+let segmento = dsp.SEGMENTO;   // amostras por janela do modelo carregado (vem do manifesto)
 let pedido = null;       // backend pedido na sessao atual
 
 const enviar = (m, t) => postMessage(m, t || []);
@@ -26,7 +22,7 @@ async function carregarOrt() {
   ort = await import(`${ORT_URL}ort.webgpu.min.mjs`);
   ort.env.wasm.wasmPaths = ORT_URL;
   // threads so com isolamento entre origens (COOP/COEP); sem ele o WASM roda em 1 thread
-  ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(CELULAR ? 2 : 8, (navigator.hardwareConcurrency || 4) - 1)) : 1;
+  ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)) : 1;
 }
 
 async function sha256hex(buf) {
@@ -95,14 +91,14 @@ async function temWebGPU() {
   try { return !!(navigator.gpu && (await navigator.gpu.requestAdapter())); } catch { return false; }
 }
 
-async function prepararSessao(base, querBackend, curto) {
-  const chave = querBackend + (curto ? "/curto" : "");
+async function prepararSessao(base, querBackend) {
+  const chave = querBackend;
   if (sessao && pedido === chave) return;
   await carregarOrt();
-  const bytes = await baixarModelo(curto ? new URL("curto/", base) : base);   // celular: janela de 3,9 s (metade da memoria)
+  const bytes = await baixarModelo(base);
   progresso("sessao", 0, 1, "Preparando o modelo no navegador");
   const tentativas = [];
-  if (!curto && querBackend !== "wasm" && (await temWebGPU()))   // celular: WebGPU cria a sessao mas derruba a aba na 1a janela
+  if (querBackend !== "wasm" && (await temWebGPU()))
     tentativas.push("webgpu");
   if (querBackend !== "webgpu") tentativas.push("wasm");
   if (!tentativas.length) throw new Error("WebGPU indisponivel neste navegador; escolha WASM.");
@@ -112,8 +108,7 @@ async function prepararSessao(base, querBackend, curto) {
       if (sessao) { try { await sessao.release(); } catch {} sessao = null; }
       sessao = await ort.InferenceSession.create(bytes, {
         executionProviders: [ep],
-        graphOptimizationLevel: CELULAR ? "basic" : "all",   // "all" cria copias otimizadas do grafo: pico de memoria maior
-        ...(CELULAR ? { enableCpuMemArena: false, enableMemPattern: false } : {}),
+        graphOptimizationLevel: "all",
       });
       backend = ep;
       pedido = chave;
@@ -126,10 +121,9 @@ async function prepararSessao(base, querBackend, curto) {
   throw new Error(`nao foi possivel criar a sessao: ${ultimoErro && (ultimoErro.message || ultimoErro)}`);
 }
 
-async function separar({ esq, dir, base, backend: querBackend, overlap, curto: forcaCurto }) {
+async function separar({ esq, dir, base, backend: querBackend, overlap }) {
   stems = null;
-  CELULAR = CELULAR_REAL || !!forcaCurto;
-  await prepararSessao(base, querBackend, CELULAR);   // ?curto forca o modelo curto no desktop (teste)
+  await prepararSessao(base, querBackend);
   const L = segmento, T = Math.ceil(L / dsp.HOP), FQ = dsp.NFFT / 2;
   const rodar = async (mix, cac) => {
     const r = await sessao.run({

@@ -595,7 +595,7 @@ async function separar() {
     const { esq, dir } = dec; dec = null;   // os buffers vao para o Worker; "tentar de novo"/cancelar decodificam outra vez
     trabalhador = trabalhador || novoTrabalhador();
     trabalhador.postMessage({ tipo: "separar", esq, dir, base: MODELO_BASE, backend: BACKEND,
-      overlap: Number(el.overlap.value), curto: params.has("curto") }, [esq.buffer, dir.buffer]);
+      overlap: Number(el.overlap.value) }, [esq.buffer, dir.buffer]);
   } catch (e) {
     if (minha !== rodada) return;
     falharComArquivo((x) => x.abrir(e.message || e));

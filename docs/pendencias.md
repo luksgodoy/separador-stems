@@ -19,6 +19,7 @@
 - Modelo `modelo/curto/` (83 MB) no repositório (antigo item 4b): decidido, o repositório é só código-fonte; modelo e `curto` vivem só em `~/sidra-publicar` (decisão do Lucas, 09/11/2026).
 
 ## Corrigido, mantido para o registro
+- 09/11/2026 · Modo celular retirado a pedido do Lucas: `trabalhador.js` sem `CELULAR_REAL`/`?curto` (WebGPU, otimização "all" e até 8 threads para todos), `app.js` sem o parâmetro `curto`, `modelo/curto/` (83 MB) removido da produção. O aviso "celular não é recomendado" continua. `teste/interface.mjs` passa inteiro.
 - 09/11/2026 · Publicado em sidrastems.com (versao `2878c5a6`): FAQ so no idioma ativo (`975c9dd`), arrastar na waveform (`4df5526`) e Analytics Engine `SEPARACOES` (dataset `sidra_separacoes`, ativado na conta). `docs/` fora dos assets publicos (`.assetsignore` em `~/sidra-publicar`; `/docs/pendencias.md` agora responde 404). Falta ver o dataset receber a primeira separacao.
 - 09/11/2026 · FAQ e rótulo de contato só no idioma ativo: CSS `html[lang=…] [lang=…] { display: none }`, os dois idiomas seguem no HTML estático (SEO intacto, JSON-LD não mudou): `975c9dd`.
 - 09/11/2026 · Arrastar na waveform move o playhead de todos os canais (pointer events, mouse e toque; tocando, recomeça uma vez ao soltar; clique simples e play por cartão intactos): `4df5526`, 5 checagens novas em `teste/interface.mjs`.
