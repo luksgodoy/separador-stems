@@ -611,7 +611,9 @@ ir("inicial");
 // gancho do teste automatizado (teste/navegador.mjs): so com ?teste na URL
 if (params.has("teste")) {
   window.separadorTeste = {
-    brutos: () => new Promise((ok) => { window.__brutos = ok; trabalhador.postMessage({ tipo: "brutos" }); }),
+    brutos: () => (brutos   // o worker ja soltou os stems (entrega sem copia): usa os que a pagina recebeu
+      ? Promise.resolve(brutos.map((x) => ({ nome: x.nome, esq: x.esq.slice(), dir: x.dir.slice() })))
+      : new Promise((ok) => { window.__brutos = ok; trabalhador.postMessage({ tipo: "brutos" }); })),
     estado: () => ({ fase, texto: el.texto.textContent, detalhe: el.detalhe.textContent, avisos: el.avisos.textContent,
       resumo: el.resumo.textContent, ocupado, isolado: self.crossOriginIsolated }),
     ganhos: () => Object.fromEntries(ORDEM.map((n) => [n, ganhoEfetivo(n)])),

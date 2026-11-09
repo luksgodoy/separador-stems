@@ -17,7 +17,7 @@ const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/M
 const WAV = process.env.WAV || join(process.env.HOME, "Stem Pessoal", "teste", "sinal_sintetico.wav");
 const FONTES = ["drums", "bass", "other", "vocals"];
 
-const nav = await puppeteer.launch({ executablePath: CHROME, headless: true,
+const nav = await puppeteer.launch({ executablePath: CHROME, headless: true, protocolTimeout: 900000,
   args: ["--enable-unsafe-webgpu", "--enable-gpu", "--use-angle=metal", "--no-first-run"] });
 const pag = await nav.newPage();
 const logs = [];
