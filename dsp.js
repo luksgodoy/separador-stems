@@ -223,8 +223,8 @@ export function recorte(esq, dir, j, L, media, desvio) {
  * rodar(mix Float32Array(2*L), cac Float32Array(4*FQ*T)) -> {xfreq: Float32Array(S*4*FQ*T), xtempo: Float32Array(S*2*L)}
  * Devolve stems: Array S de [esq, dir] Float32Array(N), ja desnormalizados.
  */
-export async function separar(esq, dir, rodar, { overlap = 0.25, progresso = () => {} } = {}) {
-  const N = esq.length, L = SEGMENTO, S = FONTES.length, T = quadros(L);
+export async function separar(esq, dir, rodar, { overlap = 0.25, progresso = () => {}, segmento = SEGMENTO } = {}) {
+  const N = esq.length, L = segmento, S = FONTES.length, T = quadros(L);
   const { media, desvio } = estatisticas(esq, dir);
   const saida = FONTES.map(() => [new Float32Array(N), new Float32Array(N)]);
   const soma = new Float32Array(N);

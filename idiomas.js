@@ -59,14 +59,14 @@ export const EXTRA = {
     tocar: "Tocar", pausar: "Pausar", fechar: "Fechar", volume: "Volume",
     zonaAria: "Escolher arquivo de áudio", idiomaAria: "Idioma", wav: "WAV",
     comoHtml: 'O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a> (Demucs v4, Meta/FAIR, licença <strong>MIT</strong>) roda <strong>no seu navegador</strong> via <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Saída: <strong>44,1 kHz estéreo</strong>.',
-    titulo_pagina: "Sidra · Separador de Stems",
+    titulo_pagina: "Sidra · Separador de Stems e Removedor de Vocal",
   },
   en: {
     b16: "16 bit",
     tocar: "Play", pausar: "Pause", fechar: "Close", volume: "Volume",
     zonaAria: "Choose an audio file", idiomaAria: "Language", wav: "WAV",
     comoHtml: 'The <a href="https://github.com/facebookresearch/demucs">htdemucs</a> model (Demucs v4, Meta/FAIR, <strong>MIT</strong> license) runs <strong>in your browser</strong> via <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Output: <strong>44.1 kHz stereo</strong>.',
-    titulo_pagina: "Sidra · Stem Separator",
+    titulo_pagina: "Sidra · Stem Separator & Vocal Remover",
   },
 };
 

@@ -7,10 +7,15 @@ const ORT_VERSAO = "1.30.0";
 const ORT_URL = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSAO}/dist/`;
 const CACHE = "separador-stems-modelo";
 
+// iPhone/iPad/Android (inclusive Chrome no iOS, que e WebKit): o sistema mata a aba que passa de ~1 GB
+const CELULAR_REAL = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || "") || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform || ""));
+
+let CELULAR = CELULAR_REAL;   // ?curto liga o mesmo modo no desktop (teste)
 let ort = null;
 let sessao = null;
 let backend = null;
 let stems = null;        // [[esq, dir] x 4] Float32Array, depois da separacao
+let segmento = dsp.SEGMENTO;   // amostras por janela do modelo carregado (o do celular e mais curto)
 let pedido = null;       // backend pedido na sessao atual
 
 const enviar = (m, t) => postMessage(m, t || []);
@@ -21,12 +26,18 @@ async function carregarOrt() {
   ort = await import(`${ORT_URL}ort.webgpu.min.mjs`);
   ort.env.wasm.wasmPaths = ORT_URL;
   // threads so com isolamento entre origens (COOP/COEP); sem ele o WASM roda em 1 thread
-  ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(8, (navigator.hardwareConcurrency || 4) - 1)) : 1;
+  ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(CELULAR ? 2 : 8, (navigator.hardwareConcurrency || 4) - 1)) : 1;
 }
 
 async function sha256hex(buf) {
+  if (!self.crypto?.subtle) return null;   // contexto sem HTTPS (so teste na rede local): nao da para conferir o hash
   const h = await crypto.subtle.digest("SHA-256", buf);
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function hashOk(buf, esperado) {
+  const h = await sha256hex(buf);
+  return h === null || h === esperado;
 }
 
 async function abrirCache() {
@@ -36,6 +47,7 @@ async function abrirCache() {
 /** Baixa os pedacos do manifesto (ou le do Cache API), confere sha256 e devolve o .onnx inteiro. */
 async function baixarModelo(base) {
   const man = await (await fetch(new URL("manifesto.json", base), { cache: "no-cache" })).json();
+  segmento = man.segmento || dsp.SEGMENTO;
   const cache = await abrirCache();
   const chaves = new Set();
   const total = man.bytes;
@@ -50,7 +62,7 @@ async function baixarModelo(base) {
       const r = await cache.match(chave);
       if (r) {
         buf = new Uint8Array(await r.arrayBuffer());
-        if (buf.byteLength !== p.bytes || (await sha256hex(buf)) !== p.sha256) { buf = null; await cache.delete(chave); }
+        if (buf.byteLength !== p.bytes || !(await hashOk(buf, p.sha256))) { buf = null; await cache.delete(chave); }
       }
     }
     if (!buf) {
@@ -66,7 +78,7 @@ async function baixarModelo(base) {
         buf.set(value, o); o += value.byteLength;
         progresso("modelo", feito + o, total, "Baixando o modelo (so na primeira vez)");
       }
-      if (o !== p.bytes || (await sha256hex(buf)) !== p.sha256) throw new Error(`${p.arquivo} chegou corrompido (sha256 diferente)`);
+      if (o !== p.bytes || !(await hashOk(buf, p.sha256))) throw new Error(`${p.arquivo} chegou corrompido (sha256 diferente)`);
       if (cache) { try { await cache.put(chave, new Response(buf)); } catch { /* sem espaco: segue sem cache */ } }
     }
     modelo.set(buf, feito);
@@ -83,22 +95,28 @@ async function temWebGPU() {
   try { return !!(navigator.gpu && (await navigator.gpu.requestAdapter())); } catch { return false; }
 }
 
-async function prepararSessao(base, querBackend) {
-  if (sessao && pedido === querBackend) return;
+async function prepararSessao(base, querBackend, curto) {
+  const chave = querBackend + (curto ? "/curto" : "");
+  if (sessao && pedido === chave) return;
   await carregarOrt();
-  const bytes = await baixarModelo(base);
+  const bytes = await baixarModelo(curto ? new URL("curto/", base) : base);   // celular: janela de 3,9 s (metade da memoria)
   progresso("sessao", 0, 1, "Preparando o modelo no navegador");
   const tentativas = [];
-  if (querBackend !== "wasm" && (await temWebGPU())) tentativas.push("webgpu");
+  if (!curto && querBackend !== "wasm" && (await temWebGPU()))   // celular: WebGPU cria a sessao mas derruba a aba na 1a janela
+    tentativas.push("webgpu");
   if (querBackend !== "webgpu") tentativas.push("wasm");
   if (!tentativas.length) throw new Error("WebGPU indisponivel neste navegador; escolha WASM.");
   let ultimoErro = null;
   for (const ep of tentativas) {
     try {
       if (sessao) { try { await sessao.release(); } catch {} sessao = null; }
-      sessao = await ort.InferenceSession.create(bytes, { executionProviders: [ep], graphOptimizationLevel: "all" });
+      sessao = await ort.InferenceSession.create(bytes, {
+        executionProviders: [ep],
+        graphOptimizationLevel: CELULAR ? "basic" : "all",   // "all" cria copias otimizadas do grafo: pico de memoria maior
+        ...(CELULAR ? { enableCpuMemArena: false, enableMemPattern: false } : {}),
+      });
       backend = ep;
-      pedido = querBackend;
+      pedido = chave;
       return;
     } catch (e) {
       ultimoErro = e;
@@ -108,10 +126,11 @@ async function prepararSessao(base, querBackend) {
   throw new Error(`nao foi possivel criar a sessao: ${ultimoErro && (ultimoErro.message || ultimoErro)}`);
 }
 
-async function separar({ esq, dir, base, backend: querBackend, overlap }) {
+async function separar({ esq, dir, base, backend: querBackend, overlap, curto: forcaCurto }) {
   stems = null;
-  await prepararSessao(base, querBackend);
-  const L = dsp.SEGMENTO, T = Math.ceil(L / dsp.HOP), FQ = dsp.NFFT / 2;
+  CELULAR = CELULAR_REAL || !!forcaCurto;
+  await prepararSessao(base, querBackend, CELULAR);   // ?curto forca o modelo curto no desktop (teste)
+  const L = segmento, T = Math.ceil(L / dsp.HOP), FQ = dsp.NFFT / 2;
   const rodar = async (mix, cac) => {
     const r = await sessao.run({
       mix: new ort.Tensor("float32", mix, [1, 2, L]),
@@ -124,7 +143,7 @@ async function separar({ esq, dir, base, backend: querBackend, overlap }) {
   const total = dsp.planoJanelas(esq.length, L, overlap).length;
   progresso("separar", 0, total, `Separando (${backend.toUpperCase()})`);
   stems = await dsp.separar(esq, dir, rodar, {
-    overlap,
+    overlap, segmento,
     progresso: (k, n) => progresso("separar", k, n, `Separando (${backend.toUpperCase()})`),
   });
   const pico = dsp.reescalar(stems);
@@ -138,9 +157,15 @@ function wavs(bits) {
   enviar({ tipo: "wavs", bits, lista }, lista.map((x) => x.wav));
 }
 
-/** So para o teste automatizado: devolve os stems em float32 (copia). */
-function brutos() {
-  const lista = dsp.FONTES.map((nome, s) => ({ nome, esq: stems[s][0].slice(), dir: stems[s][1].slice() }));
+/** Devolve os stems em float32. `liberar`: entrega os proprios buffers (sem copia) e o worker os solta,
+ *  para nao ter duas copias de ~340 MB na memoria (celular mata a aba). Sem `liberar`: copia (teste). */
+function brutos(liberar) {
+  if (!stems) throw new Error("nada separado ainda");
+  const dono = (a) => (a.byteOffset === 0 && a.byteLength === a.buffer.byteLength ? a : a.slice());
+  const lista = dsp.FONTES.map((nome, s) => liberar
+    ? { nome, esq: dono(stems[s][0]), dir: dono(stems[s][1]) }
+    : { nome, esq: stems[s][0].slice(), dir: stems[s][1].slice() });
+  if (liberar) stems = null;
   enviar({ tipo: "brutos", lista }, lista.flatMap((x) => [x.esq.buffer, x.dir.buffer]));
 }
 
@@ -149,7 +174,7 @@ self.onmessage = async (ev) => {
   try {
     if (m.tipo === "separar") await separar(m);
     else if (m.tipo === "wavs") wavs(m.bits);
-    else if (m.tipo === "brutos") brutos();
+    else if (m.tipo === "brutos") brutos(m.liberar);
   } catch (e) {
     enviar({ tipo: "erro", texto: String((e && e.message) || e) });
   }

@@ -268,20 +268,23 @@ function tratar(m) {
     contarSeparacao();
     progressoAtual = { etapa: "wav" };
     renderProgresso();
-    trabalhador.postMessage({ tipo: "brutos" });   // copia em float32 para as ondas e o player
+    pedirWavs();   // primeiro os WAVs (o worker ainda tem os stems); depois ele entrega os stems sem copiar
   } else if (m.tipo === "brutos") {
     if (window.__brutos) { const f = window.__brutos; window.__brutos = null; f(m.lista); return; }   // teste automatizado
     brutos = m.lista;
     ondasProntas = false;
-    pedirWavs();
-  } else if (m.tipo === "wavs") {
-    mostrar(m.lista, m.bits);
+    mostrar(wavsPendentes.lista, wavsPendentes.bits);
+    wavsPendentes = null;
     terminarOcupado();
+  } else if (m.tipo === "wavs") {
+    wavsPendentes = m;
+    trabalhador.postMessage({ tipo: "brutos", liberar: true });
   } else if (m.tipo === "erro") {
     falharCru(m.texto);
   }
 }
 
+let wavsPendentes = null;
 function pedirWavs() { trabalhador.postMessage({ tipo: "wavs", bits: Number(el.bits.value) }); }
 
 function renderResumo() {
@@ -349,9 +352,19 @@ el.bits.addEventListener("change", () => {
     ocupado = true;
     progressoAtual = { etapa: "wav" };
     renderProgresso();
-    pedirWavs();
+    regerarWavs(Number(el.bits.value));
   }
 });
+// os stems ja estao na pagina (o worker os soltou): recodifica aqui mesmo
+async function regerarWavs(bits) {
+  try {
+    const dsp = await import("./dsp.js");
+    const lista = [];
+    for (const x of brutos) { lista.push({ nome: x.nome, wav: dsp.codificarWav(x.esq, x.dir, TAXA, bits) }); await new Promise((r) => setTimeout(r)); }
+    mostrar(lista, bits);
+  } catch (e) { falharCru(String((e && e.message) || e)); return; }
+  terminarOcupado();
+}
 
 el.baixarTodos.addEventListener("click", () => {
   if (!wavs) return;
@@ -560,7 +573,7 @@ async function separar() {
     const { esq, dir } = dec; dec = null;   // os buffers vao para o Worker; "tentar de novo"/cancelar decodificam outra vez
     trabalhador = trabalhador || novoTrabalhador();
     trabalhador.postMessage({ tipo: "separar", esq, dir, base: MODELO_BASE, backend: BACKEND,
-      overlap: Number(el.overlap.value) }, [esq.buffer, dir.buffer]);
+      overlap: Number(el.overlap.value), curto: params.has("curto") }, [esq.buffer, dir.buffer]);
   } catch (e) {
     if (minha !== rodada) return;
     falharComArquivo((x) => x.abrir(e.message || e));
