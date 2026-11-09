@@ -88,6 +88,14 @@ g = await ganhos(); ok(g.other === 0 && g.drums === 1, `Mudo zera o ganho da fai
 await pag.click("#btn-play");
 await pag.evaluate(() => document.querySelector('[data-idioma="en"]').click());
 ok((await aria("vocals")) === "Play Vocals", `aria en: ${await aria("vocals")}`);
+// 7. Novo arquivo no resultado: volta a selecao e limpa o estado
+await pag.evaluate(() => document.querySelector('[data-idioma="pt"]').click());
+ok((await pag.$eval("#btn-novo-resultado", (b) => b.textContent.trim())) === "Novo arquivo", "botao Novo arquivo (pt)");
+await pag.evaluate(() => document.querySelector('[data-idioma="en"]').click());
+ok((await pag.$eval("#btn-novo-resultado", (b) => b.textContent.trim())) === "New file", "botao New file (en)");
+await pag.click("#btn-novo-resultado"); await esp(200);
+const ap = await pag.evaluate(() => ({ sel: !document.getElementById("tela-selecao").hidden, res: document.getElementById("painel-resultado").classList.contains("oculto"), ini: !document.getElementById("zona-inicial").hidden }));
+ok(ap.sel && ap.res && ap.ini, `Novo arquivo volta a tela inicial: ${JSON.stringify(ap)}`);
 ok(erros.length === 0, `sem pageerror ${erros.join("|")}`);
 await nav.close();
 console.log(falhas ? `${falhas} falha(s)` : "tudo certo");

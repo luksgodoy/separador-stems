@@ -20,7 +20,7 @@ const MODELO_BASE = new URL(params.get("modelo") || "./modelo/", location.href).
 const $ = (id) => document.getElementById(id);
 const el = { zona: $("zona"), entrada: $("entrada"), nome: $("arquivo-nome"), meta: $("arquivo-meta"), pronto: $("arquivo-pronto"),
   ondaArquivo: $("onda-arquivo"), bits: $("bits"), overlap: $("overlap"), resumoOpcoes: $("resumo-opcoes"),
-  separar: $("separar"), cancelar: $("cancelar"), novo: $("btn-novo"), tentar: $("btn-tentar"), novoErro: $("btn-novo-erro"),
+  separar: $("separar"), cancelar: $("cancelar"), novo: $("btn-novo"), tentar: $("btn-tentar"), novoErro: $("btn-novo-erro"), novoResultado: $("btn-novo-resultado"),
   selecao: $("tela-selecao"), zonaInicial: $("zona-inicial"), zonaArquivo: $("zona-arquivo"),
   painel: $("painel-status"), anel: $("anel"), anelPct: $("anel-pct"), texto: $("status-texto"), barra: $("barra"),
   detalhe: $("status-detalhe"), avisos: $("avisos"),
@@ -203,6 +203,7 @@ el.entrada.addEventListener("change", () => { escolher(el.entrada.files[0]); });
 el.zona.addEventListener("drop", (e) => escolher(e.dataTransfer.files[0]));
 el.novo.addEventListener("click", novoArquivo);
 el.novoErro.addEventListener("click", novoArquivo);
+el.novoResultado.addEventListener("click", novoArquivo);
 
 // ---------------------------------------------------------------- status do processamento
 function status(titulo, frac, detalhe = "") {
