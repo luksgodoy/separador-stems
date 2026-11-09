@@ -343,7 +343,7 @@
         <span class="sidra-wordmark" aria-label="Sidra" style="font-size:46px"><span class="g">SIDRA</span><i aria-hidden="true">SIDRA</i><i aria-hidden="true">SIDRA</i><i aria-hidden="true">SIDRA</i><i aria-hidden="true">SIDRA</i></span>
       </div>
       <div class="topo-dir">
-        <span class="privacidade"><span class="icone"><svg class="ic"><use href="#i-lock"/></svg></span><span data-i18n="privacidade">Nada sai do seu computador</span></span>
+        <span class="privacidade"><span class="icone"><svg class="ic"><use href="#i-lock"/></svg></span><span data-i18n="privacidade">Seu áudio fica no seu computador</span></span>
         <div class="idiomas" role="group" data-i18n-aria="idiomaAria" aria-label="Idioma">
           <button type="button" id="idioma-pt" data-idioma="pt" aria-pressed="true">PT</button>
           <button type="button" id="idioma-en" data-idioma="en" aria-pressed="false">EN</button>
@@ -586,5 +586,8 @@ document.querySelectorAll(".cortes-host").forEach(function(h){var b=h.querySelec
 </div>
 <script type="module" src="idiomas.js"></script>
 <script type="module" src="app.js"></script>
+<!-- Cloudflare Web Analytics: contador sem cookie; crossorigin por causa do COEP (coi-sw.js) -->
+<script type="module" crossorigin src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "ffd68405a22140c79f981888b77a3944"}'></script>
+<!-- End Cloudflare Web Analytics -->
 </body>
 </html>
