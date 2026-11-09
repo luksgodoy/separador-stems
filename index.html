@@ -153,6 +153,8 @@
   .contato { margin: 28px 0 8px; text-align: center; color: var(--suave); font-size: 14px; }
   .contato a.email { display: inline-block; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; text-decoration: none; color: #fff; }
   .contato a.email:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .contato .creditos { margin: 18px auto 0; max-width: 560px; font-size: 12px; line-height: 1.5; color: var(--suave); opacity: .7; }
+  .contato .creditos a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .contato .rotulo { display: block; width: fit-content; margin: 0 auto 6px; font-size: 30px; font-weight: 600; line-height: 1.2; }
   .hero p { margin: 0; color: var(--suave); max-width: 52ch; text-wrap: pretty; }
 
@@ -244,6 +246,7 @@
   #exp-traktor .icone, #exp-ableton .icone { width: auto; height: 18px; display: inline-flex; align-items: center; }
   #exp-traktor .icone img, #exp-ableton .icone img { display: block; }
   #exportar { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 900px) { #exportar { flex: 1 1 100%; } }   /* com 4 botoes, o grupo ocupa a propria linha e nao espreme o tempo */
   #exportar button[aria-busy="true"] { opacity: .6; cursor: progress; }
   #exportar button:disabled { opacity: .45; cursor: not-allowed; }
 
@@ -311,8 +314,6 @@
     <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
     <symbol id="i-zip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
     <symbol id="i-decks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="5"/><circle cx="17" cy="12" r="5"/><circle cx="7" cy="12" r="1"/><circle cx="17" cy="12" r="1"/></symbol>
-    <symbol id="i-ableton" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="2.2" height="16" rx=".4"/><rect x="7.4" y="4" width="2.2" height="16" rx=".4"/><rect x="11.8" y="4" width="2.2" height="16" rx=".4"/><rect x="16.2" y="4" width="2.2" height="16" rx=".4"/><rect x="3" y="4" width="18" height="2.2" rx=".4"/><rect x="3" y="17.8" width="18" height="2.2" rx=".4"/></symbol>
-    <symbol id="i-traktor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M7.5 9.5h9"/><path d="M12 9.5v7.5"/></symbol>
     <symbol id="i-daw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M8 5.5h5"/><path d="M12 11.5h6"/><path d="M6 17.5h7"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1" fill="currentColor"/><rect x="6" y="4" width="4" height="16" rx="1" fill="currentColor"/></symbol>
@@ -572,6 +573,7 @@
       <span id="email-contato"><noscript>contact [arroba] sidrastems.com</noscript></span>
       <script>(function(){var e=["contact","sidrastems.com"].join("@"),a=document.createElement("a");a.className="email";a.href="mailto:"+e;a.textContent=e;document.getElementById("email-contato").appendChild(a);
 document.querySelectorAll(".cortes-host").forEach(function(h){var b=h.querySelector(":scope > .base");if(!b||h.querySelector(":scope > .cortes"))return;for(var i=0;i<4;i++){var c=document.createElement("i");c.className="cortes";c.setAttribute("aria-hidden","true");c.innerHTML=b.innerHTML;h.appendChild(c)}})})()</script>
+    <p class="creditos" data-i18n-html="creditos"></p>
     </footer>
   </main>
 

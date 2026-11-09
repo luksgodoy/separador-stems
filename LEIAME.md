@@ -121,3 +121,10 @@ ORT_DIR=/caminho node interface.mjs 8090                                    # in
 **Antes de publicar**, confira a licença dos pesos: o MIT do repositório Demucs cobre o código. Que cubra
 também os pesos é a leitura usual, mas não há texto explícito (ver o README de `~/Stem Pessoal`). Ao
 distribuir os pesos, a página deve citar a fonte (já cita) e o MIT.
+
+## Créditos e licenças
+
+- **Demucs (htdemucs)**, Meta/FAIR, licença **MIT** — modelo de separação (`modelo/`, versão ONNX fp16); https://github.com/facebookresearch/demucs
+- **ONNX Runtime Web**, Microsoft, licença **MIT** — execução do modelo no navegador (WebGPU/WASM); https://onnxruntime.ai/
+- A página cita os dois, discretamente, no rodapé (`creditos` em `idiomas.js`).
+- Licença do próprio Sidra: **ainda não declarada** (não há `LICENSE`); decisão do Lucas, registrada em `docs/pendencias.md`.

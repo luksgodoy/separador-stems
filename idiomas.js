@@ -60,6 +60,7 @@ export const EXTRA = {
     zonaAria: "Escolher arquivo de áudio", idiomaAria: "Idioma", wav: "WAV",
     comoHtml: 'O modelo <a href="https://github.com/facebookresearch/demucs">htdemucs</a> (Demucs v4, Meta/FAIR, licença <strong>MIT</strong>) roda <strong>no seu navegador</strong> via <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Saída: <strong>44,1 kHz estéreo</strong>.',
     titulo_pagina: "Sidra · Separador de Stems e Removedor de Vocal",
+    creditos: 'Créditos: modelo <a href="https://github.com/facebookresearch/demucs">Demucs (htdemucs)</a>, Meta/FAIR, licença MIT; <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>, Microsoft, licença MIT.',
   },
   en: {
     b16: "16 bit",
@@ -67,6 +68,7 @@ export const EXTRA = {
     zonaAria: "Choose an audio file", idiomaAria: "Language", wav: "WAV",
     comoHtml: 'The <a href="https://github.com/facebookresearch/demucs">htdemucs</a> model (Demucs v4, Meta/FAIR, <strong>MIT</strong> license) runs <strong>in your browser</strong> via <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>. Output: <strong>44.1 kHz stereo</strong>.',
     titulo_pagina: "Sidra · Stem Separator & Vocal Remover",
+    creditos: 'Credits: <a href="https://github.com/facebookresearch/demucs">Demucs (htdemucs)</a> model, Meta/FAIR, MIT license; <a href="https://onnxruntime.ai/">ONNX Runtime Web</a>, Microsoft, MIT license.',
   },
 };
 
