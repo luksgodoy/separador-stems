@@ -8,12 +8,7 @@
 - Produção é o Worker em `~/sidra-publicar` (`npx wrangler deploy`, nome `sidra-stems`): publicar = copiar os arquivos para lá; o repositório do Sidra não é o que está no ar.
 
 ## Backlog aberto
-0d. **Limpar arquivos de stems gerados pelo Lucas**: pedido em 07/11/2026, mas nenhum arquivo do Sidra foi achado em Downloads/Desktop (as pastas `… Project` do Desktop são projetos dele). Perguntar o caminho.
-2. ~~Subdomínio + botão no Wix.~~ **Descartado em 09/11/2026**: o Sidra vive só em sidrastems.com, sem ligação com o Wix.
-4. **Testes que faltam:** Safari, Firefox, WebGPU em outras placas, arrastar e soltar real, áudio >15 min (alerta), som audível, resultado com stems reais do modelo (música de verdade, não o sinal sintético), Solo combinado com play por cartão, caminho de celular (`?curto`) no repositório.
-4b. **Modelo `modelo/curto/` (83 MB) só existe na produção** (`~/sidra-publicar`), não no repositório: o `trabalhador.js` reconciliado o pede no celular, e o GitHub Pages do repositório daria 404 nesse caminho. Decidir: copiar para o repositório (dobra o tamanho do clone) ou manter o repositório só como fonte do código. [modelo: sonnet]
-5. **Modelo no Hugging Face**, só se a divulgação crescer: o GitHub Pages dá cerca de 100 GB/mês, ou ~1.000 visitantes novos (90 MB cada). Procedimento no `LEIAME.md` (`?modelo=`). Lucas decidiu (06/11/2026) manter no GitHub por enquanto.
-
+P1. **Publicar em produção** (FAQ só no idioma ativo, arrastar na waveform, Analytics Engine `SEPARACOES`): copiar `index.html`, `app.js` para `~/sidra-publicar` e `npx wrangler deploy`. **Espera o ok do Lucas.** O dataset do Analytics Engine só passa a gravar depois do deploy (o `--dry-run` já valida o binding).
 
 ## Deliberadamente não construído
 - Mosaico girih animado (rotação e escala das camadas): feito e aprovado em teste, mas o Lucas pediu para publicar **estático** (07/11/2026). A versão animada é trocar as duas linhas `transform` de `.mosaico::before/::after` por `animation` com `@keyframes` de `translate/rotate/scale`.
@@ -21,7 +16,13 @@
 - Seletor de Processamento na UI: retirado a pedido do Lucas (06/11/2026); o app usa sempre `auto` (WebGPU, com queda para WASM). Só `?teste&backend=` força outro.
 - Modelos BS-Roformer-SW e DrumSep: licença de uso pessoal, não podem entrar (ver `LEIAME.md`).
 
+- Modelo no Hugging Face (antigo item 5): não por enquanto; o modelo segue no GitHub Pages/produção (decisão do Lucas, 09/11/2026). Procedimento no `LEIAME.md` (`?modelo=`).
+- Modelo `modelo/curto/` (83 MB) no repositório (antigo item 4b): decidido, o repositório é só código-fonte; modelo e `curto` vivem só em `~/sidra-publicar` (decisão do Lucas, 09/11/2026).
+
 ## Corrigido, mantido para o registro
+- 09/11/2026 · FAQ e rótulo de contato só no idioma ativo: CSS `html[lang=…] [lang=…] { display: none }`, os dois idiomas seguem no HTML estático (SEO intacto, JSON-LD não mudou): `975c9dd`.
+- 09/11/2026 · Arrastar na waveform move o playhead de todos os canais (pointer events, mouse e toque; tocando, recomeça uma vez ao soltar; clique simples e play por cartão intactos): `4df5526`, 5 checagens novas em `teste/interface.mjs`.
+- 09/11/2026 · Contador no Analytics Engine: binding `SEPARACOES` (dataset `sidra_separacoes`) em `~/sidra-publicar/wrangler.jsonc`, 1 ponto por separação em `worker.js` (blob1 = `request.cf.country`, blob2 = dia, sem IP; KV `CONTAGEM` mantido; falha do dataset não derruba a contagem). `wrangler deploy --dry-run` valida os bindings; **não publicado**. O `worker.js` não vive neste repositório (só em `~/sidra-publicar`).
 - 09/11/2026 · Live 12.4 derrubava o `.als` (SIGSEGV, ponteiro nulo): o esqueleto era do Live 12.1.5. Molde regenerado de um set salvo pelo 12.4 e `RelativePathType 1` em `ferramentas/montar-modelo-als.py`: `a6eac3b`.
 - 09/11/2026 · `LICENSE` MIT (`65a46dc`); Web Analytics do Cloudflare com `crossorigin` por causa do COEP e texto de privacidade citando o contador (`5d33979`); token da skill `sidra-acessos` trocado (Keychain `sidra-cf-analytics`, consulta testada).
 - 09/11/2026 · Publicado em sidrastems.com (versao `1b3fe423`): `.als` corrigido, botao Novo arquivo, creditos, contador, remocao dos symbols antigos. `modelo/curto/` segue so em `~/sidra-publicar`.
@@ -38,6 +39,8 @@
 - 06/11/2026 · Playhead SVG nunca aparecia (`hidden` não é propriedade de SVG); corrigido com `toggleAttribute("hidden")` no `a7e5e78`.
 
 ## Validado
+- 2026-11-09 · Testes em outros navegadores, arrastar e soltar real, áudio longo, som audível, stems reais do modelo, Solo com play por cartão: Lucas considerou testado e fechado (antigo item 4); o teste do `?curto` no celular foi descartado — fonte: decisão do Lucas.
+- 2026-11-09 · `node teste/interface.mjs` passa inteiro com as 5 checagens novas de arrasto (parado, em outra faixa, clique simples, tocando mantendo só a bateria, toque); FAQ mostra só `pt-BR` (390 px) ou só `en` (768 px), sem rolagem horizontal — fonte: `teste/interface.mjs`, screenshots do puppeteer.
 - 2026-11-09 · Export do Ableton aberto no Live 12.4.25b1 com as 5 faixas (o Lucas testou no servidor local, depois do molde novo) e `.stem.mp4` ok no Traktor — fonte: teste do Lucas, `a6eac3b`.
 - 2026-11-09 · `node teste/interface.mjs` passa inteiro (com os 3 checks novos do Novo arquivo pt/en e volta à tela inicial); `node teste/navegador.mjs <ref> auto` (separação real, WebGPU apple metal-3, sinal sintético de 12 s, modelo completo) chega ao resultado e bate com o `stems.py` fp32: drums 1,1e-4, bass 2,4e-5, other 3,5e-4, vocals 1,5e-3 (erro relativo); servidor `http://127.0.0.1` — fonte: `teste/interface.mjs`, `teste/navegador.mjs`, `teste/referencia.py`
 - 2026-11-09 · Layout do resultado conferido por screenshot em 390 px e 768 px (sem rolagem horizontal, scrollWidth = clientWidth; créditos legíveis no rodapé; após o ajuste do `#exportar`, tempo e resumo ocupam a linha toda a 768 px) — fonte: screenshots do puppeteer, `teste/interface.mjs` simulando 4 stems
