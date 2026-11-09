@@ -88,6 +88,35 @@ g = await ganhos(); ok(g.other === 0 && g.drums === 1, `Mudo zera o ganho da fai
 await pag.click("#btn-play");
 await pag.evaluate(() => document.querySelector('[data-idioma="en"]').click());
 ok((await aria("vocals")) === "Play Vocals", `aria en: ${await aria("vocals")}`);
+// 6b. Arrastar na waveform: pointer events movem o playhead de todos os canais; clique simples continua valendo
+{
+  if ((await icones()).topo === "pause") await pag.click("#btn-play");
+  await esp(150);
+  const caixa = async (n) => pag.$eval(`#stem-${n} .onda`, (o) => { const r = o.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; });
+  let c = await caixa("bass");
+  await pag.mouse.move(c.x + c.w * 0.25, c.y); await pag.mouse.down();
+  await pag.mouse.move(c.x + c.w * 0.5, c.y, { steps: 5 });
+  const meio = await pos();
+  await pag.mouse.move(c.x + c.w * 0.75, c.y, { steps: 5 }); await pag.mouse.up();
+  const fim = await pos();
+  ok(meio > 1.7 && meio < 2.3 && fim > 2.7 && fim < 3.3, `arrastar parado move a posicao (meio ${meio.toFixed(2)}, fim ${fim.toFixed(2)} de 4 s)`);
+  ok((await pag.$eval("#stem-vocals .onda-corte", (r) => Number(r.getAttribute("width")))) > 0, "arrasto em uma faixa move as outras (mesmo relogio)");
+  await pag.mouse.click(c.x + c.w * 0.1, c.y);
+  const clique = await pos(); ok(clique > 0.2 && clique < 0.6, `clique simples continua indo ao ponto (${clique.toFixed(2)} s)`);
+  // tocando: arrasto mantem as faixas ligadas e recomeca no ponto ao soltar
+  await pag.click("#stem-drums .btn-play-stem"); await esp(150);
+  c = await caixa("vocals");
+  await pag.mouse.move(c.x + c.w * 0.2, c.y); await pag.mouse.down();
+  await pag.mouse.move(c.x + c.w * 0.6, c.y, { steps: 5 }); await pag.mouse.up(); await esp(100);
+  const g2 = await ganhos(), p2 = await pos();
+  ok(g2.drums === 1 && g2.vocals === 0 && (await icones()).topo === "pause" && p2 > 2.3 && p2 < 2.9, `arrastar tocando segue tocando so a bateria (${JSON.stringify(g2)}, ${p2.toFixed(2)} s)`);
+  // toque (touch): arrasto por pointer events de toque
+  await pag.touchscreen.touchStart(c.x + c.w * 0.3, c.y);
+  await pag.touchscreen.touchMove(c.x + c.w * 0.8, c.y);
+  await pag.touchscreen.touchEnd(); await esp(100);
+  const p3 = await pos(); ok(p3 > 3.0 && p3 < 3.6, `arrasto por toque (${p3.toFixed(2)} s)`);
+  await pag.click("#btn-play"); await esp(100);
+}
 // 7. Novo arquivo no resultado: volta a selecao e limpa o estado
 await pag.evaluate(() => document.querySelector('[data-idioma="pt"]').click());
 ok((await pag.$eval("#btn-novo-resultado", (b) => b.textContent.trim())) === "Novo arquivo", "botao Novo arquivo (pt)");

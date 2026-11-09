@@ -510,14 +510,35 @@ function irPara(seg) {
   if (tocando) { const ligadas = [...ativas]; parar(false); deslocamento = seg; tocar(ligadas); }
   else { deslocamento = seg; atualizarTempo(); }
 }
-// clicar na onda de qualquer stem leva as 4 faixas ao ponto clicado (o relogio e um so)
+// clicar ou arrastar na onda de qualquer stem leva as 4 faixas ao ponto (o relogio e um so).
+// Pointer events (mouse e toque): durante o arrasto so a posicao se move (sem recomecar o audio a cada
+// pixel); ao soltar, se estava tocando, recomeca uma vez no ponto com as mesmas faixas ligadas.
 for (const n of ORDEM) {
   const onda = cartao(n).querySelector(".onda");
   onda.style.cursor = "pointer";
-  onda.addEventListener("click", (e) => {
-    const r = onda.getBoundingClientRect();
-    if (r.width) irPara(((e.clientX - r.left) / r.width) * duracao);
+  onda.style.touchAction = "pan-y";   // arrasto horizontal e do app; rolagem vertical continua da pagina
+  const segDe = (e) => { const r = onda.getBoundingClientRect(); return r.width ? ((e.clientX - r.left) / r.width) * duracao : null; };
+  let arrasto = null;   // { id, ligadas } enquanto o ponteiro esta pressionado
+  onda.addEventListener("pointerdown", (e) => {
+    if (!buffers || !duracao || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const seg = segDe(e); if (seg == null) return;
+    arrasto = { id: e.pointerId, ligadas: tocando ? [...ativas] : null };
+    try { onda.setPointerCapture(e.pointerId); } catch {}
+    if (arrasto.ligadas) { parar(false); }
+    deslocamento = Math.max(0, Math.min(duracao - 0.01, seg)); atualizarTempo();
   });
+  onda.addEventListener("pointermove", (e) => {
+    if (!arrasto || e.pointerId !== arrasto.id) return;
+    const seg = segDe(e); if (seg == null) return;
+    deslocamento = Math.max(0, Math.min(duracao - 0.01, seg)); atualizarTempo();
+  });
+  const soltar = (e) => {
+    if (!arrasto || e.pointerId !== arrasto.id) return;
+    const ligadas = arrasto.ligadas; arrasto = null;
+    if (ligadas && ligadas.length) tocar(ligadas);
+  };
+  onda.addEventListener("pointerup", soltar);
+  onda.addEventListener("pointercancel", soltar);
 }
 // topo: tocando (qualquer faixa) -> pausa tudo; parado -> liga as 4
 el.play.addEventListener("click", () => (tocando ? pausar() : tocar()));
