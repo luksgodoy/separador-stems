@@ -8,7 +8,6 @@
 - Produção é o Worker em `~/sidra-publicar` (`npx wrangler deploy`, nome `sidra-stems`): publicar = copiar os arquivos para lá; o repositório do Sidra não é o que está no ar.
 
 ## Backlog aberto
-P1. **Publicar em produção** (FAQ só no idioma ativo, arrastar na waveform, Analytics Engine `SEPARACOES`): copiar `index.html`, `app.js` para `~/sidra-publicar` e `npx wrangler deploy`. **Espera o ok do Lucas.** O dataset do Analytics Engine só passa a gravar depois do deploy (o `--dry-run` já valida o binding).
 
 ## Deliberadamente não construído
 - Mosaico girih animado (rotação e escala das camadas): feito e aprovado em teste, mas o Lucas pediu para publicar **estático** (07/11/2026). A versão animada é trocar as duas linhas `transform` de `.mosaico::before/::after` por `animation` com `@keyframes` de `translate/rotate/scale`.
@@ -20,6 +19,7 @@ P1. **Publicar em produção** (FAQ só no idioma ativo, arrastar na waveform, A
 - Modelo `modelo/curto/` (83 MB) no repositório (antigo item 4b): decidido, o repositório é só código-fonte; modelo e `curto` vivem só em `~/sidra-publicar` (decisão do Lucas, 09/11/2026).
 
 ## Corrigido, mantido para o registro
+- 09/11/2026 · Publicado em sidrastems.com (versao `2878c5a6`): FAQ so no idioma ativo (`975c9dd`), arrastar na waveform (`4df5526`) e Analytics Engine `SEPARACOES` (dataset `sidra_separacoes`, ativado na conta). `docs/` fora dos assets publicos (`.assetsignore` em `~/sidra-publicar`; `/docs/pendencias.md` agora responde 404). Falta ver o dataset receber a primeira separacao.
 - 09/11/2026 · FAQ e rótulo de contato só no idioma ativo: CSS `html[lang=…] [lang=…] { display: none }`, os dois idiomas seguem no HTML estático (SEO intacto, JSON-LD não mudou): `975c9dd`.
 - 09/11/2026 · Arrastar na waveform move o playhead de todos os canais (pointer events, mouse e toque; tocando, recomeça uma vez ao soltar; clique simples e play por cartão intactos): `4df5526`, 5 checagens novas em `teste/interface.mjs`.
 - 09/11/2026 · Contador no Analytics Engine: binding `SEPARACOES` (dataset `sidra_separacoes`) em `~/sidra-publicar/wrangler.jsonc`, 1 ponto por separação em `worker.js` (blob1 = `request.cf.country`, blob2 = dia, sem IP; KV `CONTAGEM` mantido; falha do dataset não derruba a contagem). `wrangler deploy --dry-run` valida os bindings; **não publicado**. O `worker.js` não vive neste repositório (só em `~/sidra-publicar`).
